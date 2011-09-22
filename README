@@ -1,0 +1,6 @@
+The database code and tests will go here.
+
+README - this file
+scripts - directory containing database scripts
+test - directory containing test scripts and data
+
