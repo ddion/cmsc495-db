@@ -12,13 +12,13 @@
  */
 
 /*
- * Drop tables.
+ * Create the schema.
  */
-drop table if exists CONNECTIONS cascade;
-drop table if exists CONNECTION_REQUESTS cascade;
-drop table if exists UPDATES cascade;
-drop table if exists USERS cascade;
-drop type if exists ACCESS_LEVEL cascade;
+drop schema if exists SPLATTER cascade;
+
+create schema SPLATTER;
+
+set SEARCH_PATH to SPLATTER, PUBLIC;
 
 /*
  * Create the ACCESS_LEVEL enumeration.

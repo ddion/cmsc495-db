@@ -7,10 +7,55 @@
  *  PostgreSQL 9.1
  *  Ubuntu 11.10
  *
- * File:    0_create_roles.postgresql
- * Purpose: This file creates all of the database roles/users.
+ * File:    4_create_functions.postgresql
+ * Purpose: This file creates the functions to interface with the database.
  */
 
 /*
- * 
+ * Load the PL/pgSQL language.
  */
+set SEARCH_PATH to PUBLIC;
+
+create extension if not exists PLPGSQL;
+
+/*
+ * Create the schema.
+ */
+drop schema if exists SPLATTER_API cascade;
+
+create schema SPLATTER_API;
+
+set SEARCH_PATH to SPLATTER_API, SPLATTER, PUBLIC;
+
+/*
+ * Adds a user record to the database.
+ */
+create function CREATE_USER(
+       P_USERNAME_IN           VARCHAR,
+       P_PASSWORD_IN           VARCHAR,
+       P_FIRST_IN              VARCHAR,
+       P_MI_IN                 CHAR(1),
+       P_LAST_IN               VARCHAR,
+       P_NAME_PRIVACY_IN       ACCESS_LEVEL,
+       P_EMAIL_IN              VARCHAR,
+       P_EMAIL_PRIVACY_IN      ACCESS_LEVEL)
+  returns BIGINT as $$
+declare
+  V_USER_ID BIGINT;
+begin
+  -- Insert the user and return the new user id.
+  insert into USERS(
+    CREATED_TIME, UPDATED_TIME,
+    USERNAME, PASSWORD,
+    FIRST, MI, LAST, NAME_PRIVACY,
+    EMAIL, EMAIL_PRIVACY)
+  values (
+    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
+    P_USERNAME_IN, P_PASSWORD_IN,
+    P_FIRST_IN, P_MI_IN, P_LAST_IN, P_NAME_PRIVACY_IN,
+    P_EMAIL_IN, P_EMAIL_PRIVACY_IN)
+  returning USER_ID into V_USER_ID;
+  return V_USER_ID;
+end;
+$$ language PLPGSQL;
+
