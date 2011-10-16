@@ -1,0 +1,115 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/15/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    1_create_entity_tables.postgresql
+ * Purpose: This file creates the database tables.
+ */
+
+/*
+ * Drop tables.
+ */
+drop table if exists CONNECTIONS cascade;
+drop table if exists CONNECTION_REQUESTS cascade;
+drop table if exists UPDATES cascade;
+drop table if exists USERS cascade;
+drop type if exists ACCESS_LEVEL cascade;
+
+/*
+ * Create the ACCESS_LEVEL enumeration.
+ */
+create type ACCESS_LEVEL as ENUM(
+  'NONE',
+  'FOLLOWERS',
+  'ALL');
+
+/*
+ * Create the USERS table.
+ */
+create table USERS(
+  -- Columns
+  USER_ID        BIGSERIAL     not null,
+  CREATED_TIME   TIMESTAMP     not null,
+  UPDATED_TIME   TIMESTAMP     not null,
+  USERNAME       VARCHAR       not null,
+  PASSWORD       VARCHAR       not null,
+  FIRST          VARCHAR,
+  MI             CHAR(1),
+  LAST           VARCHAR,
+  NAME_PRIVACY   ACCESS_LEVEL,
+  EMAIL          VARCHAR       not null,
+  EMAIL_PRIVACY  ACCESS_LEVEL  not null,
+  -- Primary key constraint on USER_ID
+  constraint USERS_PK primary key (USER_ID),
+  -- Unique USERNAME constraint
+  constraint USERS_USERNAME_UQ unique (USERNAME),
+  -- Unique EMAIL constraint
+  constraint USERS_EMAIL_UQ unique (EMAIL));
+
+/*
+ * Create the UPDATES table.
+ */
+create table UPDATES(
+  -- Columns
+  UPDATE_ID      BIGSERIAL     not null,
+  USER_ID        BIGINT        not null,
+  CREATED_TIME   TIMESTAMP     not null,
+  UPDATED_TIME   TIMESTAMP     not null,
+  POSTED         BOOLEAN       not null,
+  MESSAGE        VARCHAR(280)  not null,
+  -- Primary key constraint on UPDATE ID
+  constraint UPDATES_PK primary key (UPDATE_ID),
+  -- Foreign key constraint on USER_ID
+  constraint UPDATES_USERS_FK foreign key (USER_ID)
+             references USERS(USER_ID)
+             on delete cascade);
+
+/*
+ * Create the CONNECTION_REQUESTS table.
+ */
+create table CONNECTION_REQUESTS(
+  -- Columns
+  REQUEST_ID     BIGSERIAL     not null,
+  SENDER_ID      BIGINT        not null,
+  RECEIVER_ID    BIGINT        not null,
+  CREATED_TIME   TIMESTAMP     not null,
+  MESSAGE        VARCHAR(280)  not null,
+  -- Primary key constraint on REQUEST_ID
+  constraint CREQUESTS_PK primary key (REQUEST_ID),
+  -- Foreign key constraint on SENDER_ID
+  constraint CREQUESTS_USERS_SENDER_FK foreign key (SENDER_ID)
+             references USERS(USER_ID)
+             on delete cascade,
+  -- Foreign key constraint on RECEIVER_ID
+  constraint CREQUESTS_USERS_RECEIVER_FK foreign key (RECEIVER_ID)
+             references USERS(USER_ID)
+             on delete cascade,
+  -- Unique SENDER_ID/RECEIVER_ID constraint
+  constraint CREQUESTS_SENDER_RECEIVER_UQ unique (SENDER_ID, RECEIVER_ID));
+
+/*
+ * Create the CONNECTIONS table.
+ */
+create table CONNECTIONS(
+  -- Columns
+  CONNECTION_ID  BIGSERIAL     not null,
+  FOLLOWER_ID    BIGINT        not null,
+  FOLLOWED_ID    BIGINT        not null,
+  CREATED_TIME   TIMESTAMP     not null,
+  -- Primary key constraint on CONNECTION_ID
+  constraint CONNECTIONS_PK primary key (CONNECTION_ID),
+  -- Foreign key constraint on FOLLOWER_ID
+  constraint CONNECTIONS_USERS_FOLLOWER_FK foreign key (FOLLOWER_ID)
+             references USERS(USER_ID)
+             on delete cascade,
+  -- Foreign key constraint on FOLLOWED_ID
+  constraint CONNECTIONS_USERS_FOLLOWED_FK foreign key (FOLLOWED_ID)
+             references USERS(USER_ID)
+             on delete cascade,
+  -- Unique FOLLOWER_ID/FOLLOWED_ID constraint
+  constraint CONNECTIONS_FOLLOWER_FOLLOWED_UQ unique (FOLLOWER_ID, FOLLOWED_ID));

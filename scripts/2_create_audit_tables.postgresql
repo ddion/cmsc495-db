@@ -1,0 +1,16 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/15/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    0_create_roles.postgresql
+ * Purpose: This file creates all of the database roles/users.
+ */
+
+/*
+ * 
+ */
