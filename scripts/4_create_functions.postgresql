@@ -43,7 +43,7 @@ create function CREATE_USER(
 declare
   V_USER_ID          BIGINT;
 begin
-  -- Insert the user and return the new user id.
+  -- Insert the user.
   insert into USERS(
     CREATED_TIME, UPDATED_TIME,
     USERNAME, PASSWORD,
@@ -54,7 +54,9 @@ begin
     P_USERNAME_IN, P_PASSWORD_IN,
     P_FIRST_IN, P_MI_IN, P_LAST_IN, P_NAME_PRIVACY_IN,
     P_EMAIL_IN, P_EMAIL_PRIVACY_IN)
-  returning USER_ID into V_USER_ID;
+  returning USER_ID into strict V_USER_ID;
+
+  -- Return the new user id.
   return V_USER_ID;
 end;
 $$ language PLPGSQL;
@@ -68,10 +70,13 @@ create function RETREIVE_USER(
 declare
   C_RESULTS          REFCURSOR;
 begin
+  -- Retrieve the user.
   open C_RESULTS for
     select *
       from USERS
      where USER_ID = P_USER_ID_IN;
+
+  -- Return the results;
   return C_RESULTS;
 end;
 $$ language PLPGSQL;
@@ -130,12 +135,13 @@ create function IS_FOLLOWER(
 declare
   V_IS_FOLLOWER      BOOLEAN = null;
 begin
-  -- Check if the user is following the viewer
+  -- Check if the connection exists.
   select true into V_IS_FOLLOWER
     from CONNECTIONS
    where FOLLOWER_ID = P_FOLLOWER_ID_IN
      and FOLLOWED_ID = P_FOLLOWED_ID_IN;
 
+  -- Return the result.
   if (V_IS_FOLLOWER is null) then
     return false;
   else
@@ -159,15 +165,18 @@ end;
 $$ language PLPGSQL;
 
 /*
- * Gets one user's view of the other users in the database
+ * Allows a user to view another user's account.
+ * The ID of the searching user must be supplied in order
+ * to filter results according to privacy settings.
  */
-create function VIEW_USERS(
-       P_VIEWER_ID_IN          BIGINT)
+create function VIEW_USER(
+       P_VIEWER_ID_IN          BIGINT,
+       P_USER_ID_IN            BIGINT)
   returns REFCURSOR as $$
 declare
   C_RESULTS          REFCURSOR;
 begin
-  -- Get the view of the other users
+  -- Find the user.
   open C_RESULTS for
     select USER_ID,
            USERNAME,
@@ -204,28 +213,9 @@ begin
            IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
            IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
       from USERS
-     where USER_ID <> P_VIEWER_ID_IN;
-  return C_RESULTS;
-end;
-$$ language PLPGSQL;
-
-/*
- * Allows a user to view another user's account.
- * The ID of the searching user must be supplied in order
- * to filter results according to privacy settings.
- */
-create function VIEW_USER(
-       P_VIEWER_ID_IN          BIGINT,
-       P_USER_ID_IN            BIGINT)
-  returns REFCURSOR as $$
-declare
-  C_RESULTS          REFCURSOR;
-begin
-  -- Find the user that matches
-  open C_RESULTS for
-    select *
-      from VIEW_USERS(P_VIEWER_ID_IN)
      where USER_ID = P_USER_ID_IN;
+
+  -- Return the results.
   return C_RESULTS;
 end;
 $$ language PLPGSQL;
@@ -244,10 +234,43 @@ create function FIND_USER_BY_NAME(
 declare
   C_RESULTS          REFCURSOR;
 begin
-  -- Find the user that matches
+  -- Find the user(s).
   open C_RESULTS for
-    select *
-      from VIEW_USERS(P_VIEWER_ID_IN)
+    select USER_ID,
+           USERNAME,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then FIRST
+                else null
+           end as FIRST,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then MI
+                else null
+           end as MI,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then LAST
+                else null
+           end as LAST,
+           HAS_ACCESS(
+             NAME_PRIVACY,
+             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as NAME_PRIVACY,
+           case when HAS_ACCESS(
+                       EMAIL_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then EMAIL
+                else null
+           end as EMAIL,
+           HAS_ACCESS(
+             EMAIL_PRIVACY,
+             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
+           IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
+           IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+      from USERS
      where NAME_PRIVACY
        and (P_FIRST_IN is not null or
             P_MI_IN is not null or
@@ -255,6 +278,8 @@ begin
        and (P_FIRST_IN is null or P_FIRST_IN ilike FIRST)
        and (P_MI_IN is null or P_MI_IN ilike MI)
        and (P_LAST_IN is null or P_LAST_IN ilike LAST);
+
+  -- Return the results.
   return C_RESULTS;
 end;
 $$ language PLPGSQL;
@@ -271,11 +296,46 @@ create function FIND_USER_BY_USERNAME(
 declare
   C_RESULTS          REFCURSOR;
 begin
-  -- Find the user that matches
+  -- Find the user.
   open C_RESULTS for
-    select *
-      from VIEW_USERS(P_VIEWER_ID_IN)
+    select USER_ID,
+           USERNAME,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then FIRST
+                else null
+           end as FIRST,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then MI
+                else null
+           end as MI,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then LAST
+                else null
+           end as LAST,
+           HAS_ACCESS(
+             NAME_PRIVACY,
+             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as NAME_PRIVACY,
+           case when HAS_ACCESS(
+                       EMAIL_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then EMAIL
+                else null
+           end as EMAIL,
+           HAS_ACCESS(
+             EMAIL_PRIVACY,
+             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
+           IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
+           IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+      from USERS
       where USERNAME = P_USERNAME_IN;
+
+  -- Return the results.
   return C_RESULTS;
 end;
 $$ language PLPGSQL;
@@ -292,11 +352,46 @@ create function FIND_USER_BY_EMAIL(
 declare
   C_RESULTS          REFCURSOR;
 begin
-  -- Find the user that matches
+  -- Find the user.
   open C_RESULTS for
-    select *
-      from VIEW_USERS(P_VIEWER_ID_IN)
+    select USER_ID,
+           USERNAME,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then FIRST
+                else null
+           end as FIRST,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then MI
+                else null
+           end as MI,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then LAST
+                else null
+           end as LAST,
+           HAS_ACCESS(
+             NAME_PRIVACY,
+             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as NAME_PRIVACY,
+           case when HAS_ACCESS(
+                       EMAIL_PRIVACY,
+                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+                then EMAIL
+                else null
+           end as EMAIL,
+           HAS_ACCESS(
+             EMAIL_PRIVACY,
+             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
+           IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
+           IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+      from USERS
      where EMAIL = P_EMAIL_IN;
+
+  -- Return the results.
   return C_RESULTS;
 end;
 $$ language PLPGSQL;
@@ -311,7 +406,7 @@ create function CREATE_UPDATE(
 declare
   V_UPDATE_ID        BIGINT;
 begin
-  -- Insert the update and return the new update id.
+  -- Insert the update.
   insert into UPDATES(
     USER_ID,
     CREATED_TIME, UPDATED_TIME,
@@ -320,7 +415,9 @@ begin
     P_USER_ID_IN,
     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
     false, P_MESSAGE_IN)
-  returning UPDATE_ID into V_UPDATE_ID;
+  returning UPDATE_ID into strict V_UPDATE_ID;
+
+  -- Return the new update id.
   return V_UPDATE_ID;
 end;
 $$ language PLPGSQL;
@@ -334,10 +431,13 @@ create function RETRIEVE_UPDATE(
 declare
   C_RESULTS          REFCURSOR;
 begin
+  -- Retrieve the update.
   open C_RESULTS for
     select *
       from UPDATES
      where UPDATE_ID = P_UPDATE_ID_IN;
+
+  -- Return the results.
   return C_RESULTS;
 end;
 $$ language PLPGSQL;
@@ -354,6 +454,7 @@ create function RETREIVE_UPDATES(
 declare
   C_RESULTS          REFCURSOR;
 begin
+  -- Retreive the updates.
   open C_RESULTS for
     select *
       from UPDATES
@@ -361,6 +462,8 @@ begin
      order by UPDATED_TIME desc
      limit P_RESULTS_COUNT_IN
     offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
   return C_RESULTS;
 end;
 $$ language PLPGSQL;
@@ -373,6 +476,7 @@ create function SAVE_UPDATE(
        P_MESSAGE_IN            VARCHAR(280))
   returns VOID as $$
 begin
+  -- Update the update.
   update UPDATES
      set MESSAGE = P_MESSAGE_IN,
          UPDATED_TIME = CURRENT_TIMESTAMP
@@ -387,6 +491,7 @@ create function POST_UPDATE(
        P_UPDATE_ID_IN          BIGINT)
   returns VOID as $$
 begin
+  -- Delete the update.
   update UPDATES
      set POSTED = true
    where UPDATE_ID = P_UPDATE_ID_IN;
@@ -400,6 +505,7 @@ create function DELETE_UPDATE(
        P_UPDATE_ID_IN          BIGINT)
   returns VOID as $$
 begin
+  -- Delete the update.
   delete
     from UPDATES
    where UPDATE_ID = P_UPDATE_ID_IN;
@@ -418,20 +524,409 @@ create function VIEW_FOLLOWED_UPDATES(
 declare
   C_RESULTS          REFCURSOR;
 begin
+  -- Retrieve the updates.
   open C_RESULTS for
     select UPDATE_ID,
-           USER_ID,
+           UPDATES.USER_ID as USER_ID,
            USERNAME,
            UPDATED_TIME as POSTED_TIME,
            MESSAGE
       from UPDATES
       join CONNECTIONS
+      join USERS
         on USER_ID = FOLLOWED_ID
+     using (USER_ID)
      where POSTED
        and FOLLOWER_ID = P_VIEWER_ID_IN
      order by UPDATED_TIME desc
      limit P_RESULTS_COUNT_IN
     offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Finds all updates from a specified user.
+ * This function requires the ID of the viewing user in order
+ * to respect privacy settings.
+ * Results are ordered reverse-chronologically.
+ */
+create function VIEW_USER_UPDATES(
+       P_VIEWER_ID_IN          BIGINT,
+       P_OWNER_ID_IN           BIGINT,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Retrieve the updates.
+  open C_RESULTS for
+    select UPDATE_ID,
+           UPDATES.USER_ID as USER_ID,
+           USERNAME,
+           UPDATED_TIME as POSTED_TIME,
+           MESSAGE
+      from UPDATES
+      join CONNECTIONS
+      join USERS
+        on USER_ID = FOLLOWED_ID
+     using (USER_ID)
+     where POSTED
+       and USER_ID = P_OWNER_ID_IN
+       and FOLLOWER_ID = P_VIEWER_ID_IN
+     order by UPDATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Adds a connection request record to the database.
+ */
+create function CREATE_CONNECTION_REQUEST(
+       P_SENDER_ID_IN          BIGINT,
+       P_RECEIVER_ID_IN        BIGINT,
+       P_MESSAGE_IN            VARCHAR(280))
+  returns BIGINT as $$
+declare
+  V_REQUEST_ID       BIGINT;
+begin
+  -- Insert the request and return the new request id.
+  insert into CONNECTION_REQUESTS(
+    SENDER_ID, RECEIVER_ID,
+    CREATED_TIME,
+    MESSAGE)
+  values (
+    P_SENDER_ID_IN, P_RECEIVER_ID_IN,
+    CURRENT_TIMESTAMP,
+    P_MESSAGE_IN)
+  returning REQUEST_ID into V_REQUEST_ID;
+
+  -- Return the new request id.
+  return V_REQUEST_ID;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Retrieves a connection request record from the database.
+ */
+create function RETRIEVE_CONNECTION_REQUEST(
+       P_REQUEST_ID_IN         BIGINT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Retrieve the request.
+  open C_RESULTS for
+    select *
+      from CONNECTION_REQUESTS
+     where REQUEST_ID = P_REQUEST_ID_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Accepts a connection request, deleting the connection
+ * request record and adding a new connection record.
+ */
+create function ACCEPT_CONNECTION_REQUEST(
+       P_REQUEST_ID            BIGINT)
+  returns BIGINT as $$
+declare
+  V_CONNECTION_ID    BIGINT;
+  V_FOLLOWER_ID      BIGINT;
+  V_FOLLOWED_ID      BIGINT;
+begin
+  -- Delete the request.
+  delete
+    from CONNECTION_REQUESTS
+   where REQUEST_ID = P_REQUEST_ID
+  returning FOLLOWER_ID, FOLLOWED_ID
+    into strict V_FOLLOWER_ID, V_FOLLOWED_ID;
+
+  -- Add the new connection.
+  insert into CONNECTIONS(
+    FOLLOWER_ID, FOLLOWED_ID,
+    CREATED_TIME)
+  values(
+    V_FOLLOWER_ID, V_FOLLOWED_ID,
+    CURRENT_TIMESTAMP)
+  returning CONNECTION_ID 
+  into strict V_CONNECTION_ID;
+
+  -- Return the connection id.
+  return V_CONNECTION_ID;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Rejects a connection request, deleting the record
+ * from the database.
+ */
+create function REJECT_CONNECTION_REQUEST(
+       P_REQUEST_ID_IN         BIGINT)
+  returns VOID as $$
+begin
+  -- Delete the request.
+  delete
+    from CONNECTION_REQUESTS
+   where REQUEST_ID = P_REQUEST_ID_IN;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Deletes a connection request record from the database.
+ */
+create function DELETE_CONNECTION_REQUEST(
+       P_REQUEST_ID_IN         BIGINT)
+  returns VOID as $$
+begin
+  -- Delete the request.
+  delete
+    from CONNECTION_REQUESTS
+   where REQUEST_ID = P_REQUEST_ID_IN;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Retrieves connection requests for the specified receiving user.
+ * Results are ordered reverse-chronologically.
+ */
+create function VIEW_RECEIVED_CONNECTION_REQUESTS(
+       P_RECEIVER_ID_IN        BIGINT,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Retrieve the requests.
+  open C_RESULTS for
+    select REQUEST_ID,
+           SENDER_ID,
+           USERNAME,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID))
+                then FIRST
+                else null
+           end as FIRST,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID))
+                then MI
+                else null
+           end as MI,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID))
+                then LAST
+                else null
+           end as LAST,
+           HAS_ACCESS(
+             NAME_PRIVACY,
+             IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID)) as NAME_PRIVACY,
+           case when HAS_ACCESS(
+                       EMAIL_PRIVACY,
+                       IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID))
+                then EMAIL
+                else null
+           end as EMAIL,
+           HAS_ACCESS(
+             EMAIL_PRIVACY,
+             IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID)) as EMAIL_PRIVACY,
+           IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID) as RECEIVER_FOLLOWING_SENDER,
+           CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
+      from CONNECTION_REQUESTS
+      join USERS
+        on USER_ID = SENDER_ID
+     where RECEIVER_ID = P_RECEIVER_ID_IN
+     order by CREATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Retrieves connection requests for the specified sending user.
+ * Results are ordered reverse-chronologically.
+ */
+create function VIEW_SENT_CONNECTION_REQUESTS(
+       P_SENDER_ID_IN          BIGINT,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Retrieve the requests.
+  open C_RESULTS for
+    select REQUEST_ID,
+           RECEIVER_ID,
+           USERNAME,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID))
+                then FIRST
+                else null
+           end as FIRST,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID))
+                then MI
+                else null
+           end as MI,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID))
+                then LAST
+                else null
+           end as LAST,
+           HAS_ACCESS(
+             NAME_PRIVACY,
+             IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID)) as NAME_PRIVACY,
+           case when HAS_ACCESS(
+                       EMAIL_PRIVACY,
+                       IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID))
+                then EMAIL
+                else null
+           end as EMAIL,
+           HAS_ACCESS(
+             EMAIL_PRIVACY,
+             IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID)) as EMAIL_PRIVACY,
+           IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID) as SENDER_FOLLOWING_RECEIVER,
+           CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
+      from CONNECTION_REQUESTS
+      join USERS
+        on USER_ID = RECEIVER_ID
+     where SENDER_ID = P_SENDER_ID_IN
+     order by CREATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Retrieves records of users who are being followed by
+ * the specified user.
+ * Results are ordered lexicographically by username.
+ */
+create function VIEW_FOLLOWED_USERS(
+       P_VIEWER_ID_IN          BIGINT,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Retrieve followed users.
+  open C_RESULTS for
+    select USER_ID,
+           USERNAME,
+           case when HAS_ACCESS(NAME_PRIVACY, true)
+                then FIRST
+                else null
+           end as FIRST,
+           case when HAS_ACCESS(NAME_PRIVACY, true)
+                then MI
+                else null
+           end as MI,
+           case when HAS_ACCESS(NAME_PRIVACY, true)
+                then LAST
+                else null
+           end as LAST,
+           HAS_ACCESS(NAME_PRIVACY, true) as NAME_PRIVACY,
+           case when HAS_ACCESS(NAME_PRIVACY, true) 
+                then EMAIL
+                else null
+           end as EMAIL,
+           HAS_ACCESS(EMAIL_PRIVACY, true) as EMAIL_PRIVACY,
+           IS_FOLLOWING(FOLLOWED_ID, FOLLOWER_ID) as USER_FOLLOWING_VIEWER,
+           CONNECTIONS.CREATED_TIME
+      from CONNECTIONS
+      join USERS
+        on USER_ID = FOLLOWED_ID
+     where FOLLOWER_ID = P_VIEWER_ID_IN
+     order by USERNAME asc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL;
+
+/*
+ * Retrieves records of users who are following the specified user.
+ * Results are ordered lexicographically by username.
+ */
+create function VIEW_FOLLOWERS(
+       P_VIEWER_ID_IN          BIGINT,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Retrieve followers.
+  open C_RESULTS for
+    select USER_ID,
+           USERNAME,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID))
+                then FIRST
+                else null
+           end as FIRST,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID))
+                then MI
+                else null
+           end as MI,
+           case when HAS_ACCESS(
+                       NAME_PRIVACY,
+                       IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID))
+                then LAST
+                else null
+           end as LAST,
+           HAS_ACCESS(
+             NAME_PRIVACY,
+             IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID)) as NAME_PRIVACY,
+           case when HAS_ACCESS(
+                       EMAIL_PRIVACY,
+                       IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID))
+                then EMAIL
+                else null
+           end as EMAIL,
+           HAS_ACCESS(
+             EMAIL_PRIVACY,
+             IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID)) as EMAIL_PRIVACY,
+           IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID) as VIEWER_FOLLOWING_USER,
+           CONNECTIONS.CREATED_TIME
+      from CONNECTIONS
+      join USERS
+        on USER_ID = FOLLOWER_ID
+     where FOLLOWED_ID = P_VIEWER_ID_IN
+     order by USERNAME asc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
   return C_RESULTS;
 end;
 $$ language PLPGSQL;
