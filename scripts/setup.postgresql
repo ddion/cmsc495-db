@@ -1,0 +1,16 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/15/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    setup.postgresql
+ * Purpose: This is the top level file that runs all of the
+ *          database creation scripts.
+ */
+
+\i create_entity_tables.postgresql
+\i create_functions.postgresql
