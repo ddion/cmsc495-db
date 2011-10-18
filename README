@@ -1,6 +1,44 @@
-The database code and tests will go here.
+Course:  CMSC495 - Trends and Projects in Computer Science
+Project: Splatter - Team 1
+Author:  Michael Songy
+Date:    10/15/2011
+Platform:
+ PostgreSQL 9.1
+ Ubuntu 11.10
 
-README - this file
-scripts - directory containing database scripts
-test - directory containing test scripts and data
+1. Purpose:
+Database for the Splatter application.
 
+2. Configuration Notes:
+- Ubuntu 11.10
+- PostgreSQL 9.1
+
+3. Files included:
+	README - This text file
+	scripts - directory containing database creation scripts
+	scripts/create_entity_tables.postgresql - script for creating the
+		Splatter entity tables
+	scripts/create_functions.postgresql - script for creating the
+		stored function interface to the Splatter database
+	scripts/setup.postgresql - top-level database creation script
+
+4. To create the database:
+	1. Create a new Linux user:
+		sudo adduser splatter
+	2. Create a new PostgreSQL user with database and role creation
+	   rights:
+		su postgres
+		createuser splatter
+		exit
+	3. Create a new PostgreSQL database with the new user as owner:
+		su postgres
+		createdb -O splatter splatter
+		exit
+	4. Give the new user access to the scripts directory and contents
+	5. Login as the newly created linux user:
+		su splatter
+	6. Change into the scripts directory, and then run psql:
+		cd <location of scripts directory>/scripts
+		psql
+	7. At the psql prompt, run the setup script:
+		\i setup.postgresql
