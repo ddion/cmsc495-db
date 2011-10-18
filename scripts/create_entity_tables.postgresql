@@ -7,7 +7,7 @@
  *  PostgreSQL 9.1
  *  Ubuntu 11.10
  *
- * File:    1_create_entity_tables.postgresql
+ * File:    create_entity_tables.postgresql
  * Purpose: This file creates the database tables.
  */
 

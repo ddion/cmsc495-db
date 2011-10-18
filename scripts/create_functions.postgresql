@@ -7,7 +7,7 @@
  *  PostgreSQL 9.1
  *  Ubuntu 11.10
  *
- * File:    4_create_functions.postgresql
+ * File:    create_functions.postgresql
  * Purpose: This file creates the functions to interface with the database.
  */
 
