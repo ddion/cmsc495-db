@@ -1,0 +1,34 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/15/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    setup.postgresql
+ * Purpose: This file creates the database roles.
+ */
+
+set SEARCH_PATH to SPLATTER_API, PUBLIC;
+
+/*
+ * Create the SPLATTER_USER user.  This user only has access to the
+ * database through the functions in the SPLATTER_API schema.  This
+ * helps ensure security and privacy, since the types of operations
+ * that can be performed on tables are tightly controlled.
+ */
+drop user if exists SPLATTER_USER;
+
+create user SPLATTER_USER 
+       with PASSWORD '5pl@t!';
+
+grant USAGE
+   on SCHEMA SPLATTER_API
+   to SPLATTER_USER;
+
+grant EXECUTE
+   on ALL FUNCTIONS IN SCHEMA SPLATTER_API
+   to SPLATTER_USER;
+
