@@ -1,0 +1,18 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/23/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_splatter_audit_tables.postgresql
+ * Purpose: This file creates support tables for database auditing and
+ *          error logging.
+ */
+set SEARCH_PATH to SPLATTER, PUBLIC;
+
+/*
+ * TODO: Add tables for auditing and error logging.
+ */

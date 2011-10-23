@@ -1,0 +1,86 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/23/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_splatter_functions.postgresql
+ * Purpose: This file creates private helper functions.
+ */
+set SEARCH_PATH to SPLATTER, PUBLIC;
+
+/*
+ * Checks if one user is following another.
+ */
+create function IS_FOLLOWER(
+       P_FOLLOWER_ID_IN        BIGINT,
+       P_FOLLOWED_ID_IN        BIGINT)
+  returns BOOLEAN as $$
+declare
+  V_IS_FOLLOWER      BOOLEAN = null;
+begin
+  -- Check if the connection exists.
+  select true into V_IS_FOLLOWER
+    from SPLATTER.CONNECTIONS
+   where FOLLOWER_ID = P_FOLLOWER_ID_IN
+     and FOLLOWED_ID = P_FOLLOWED_ID_IN;
+
+  -- Return the result.
+  if (V_IS_FOLLOWER is null) then
+    return false;
+  else
+    return V_IS_FOLLOWER;
+  end if;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Checks if one user has access to another's name.
+ */
+create function HAS_ACCESS(
+       P_PRIVACY_IN            SPLATTER.ACCESS_LEVEL,
+       P_IS_FOLLOWER           BOOLEAN)
+  returns BOOLEAN as $$
+begin
+  return P_PRIVACY_IN = 'ALL' or (
+           P_PRIVACY_IN = 'FOLLOWERS' and
+           P_IS_FOLLOWER);
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Creates an auth session token.
+ */
+create function CREATE_AUTH_TOKEN()
+  returns VARCHAR as $$
+declare
+  V_RESULT           VARCHAR;
+begin
+  -- Generate an MD5 hash of a random double as a session token.
+  V_RESULT := MD5(RANDOM()::TEXT)::VARCHAR;
+
+  -- Return the session token.
+  return V_RESULT;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Checks authentication.
+ */
+create function AUTHENTICATE(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN            VARCHAR)
+  returns VOID as $$
+begin
+  perform *
+    from SPLATTER.AUTHORIZED_USERS
+   where USER_ID = P_USER_ID_IN
+     and SESSION_TOKEN like P_AUTH_TOKEN;
+  if not FOUND then
+    raise exception 'Unauthorized access!';
+  end if;
+end;
+$$ language PLPGSQL security definer;

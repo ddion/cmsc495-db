@@ -7,11 +7,10 @@
  *  PostgreSQL 9.1
  *  Ubuntu 11.10
  *
- * File:    setup.postgresql
+ * File:    create_roles.postgresql
  * Purpose: This file creates the database roles.
  */
-
-set SEARCH_PATH to SPLATTER_API, PUBLIC;
+set SEARCH_PATH to PUBLIC;
 
 /*
  * Create the SPLATTER_USER user.  This user only has access to the
@@ -19,10 +18,8 @@ set SEARCH_PATH to SPLATTER_API, PUBLIC;
  * helps ensure security and privacy, since the types of operations
  * that can be performed on tables are tightly controlled.
  */
-drop user if exists SPLATTER_USER;
-
 create user SPLATTER_USER 
-       with password '5pl@t!';
+       with password 'Us35pl@t7er!';
 
 grant usage
    on schema SPLATTER_API
@@ -31,4 +28,3 @@ grant usage
 grant execute
    on all functions in schema SPLATTER_API
    to SPLATTER_USER;
-

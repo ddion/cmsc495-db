@@ -1,0 +1,303 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/15/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_splatter_api_request_functions.postgresql
+ * Purpose: This file creates the connection request management functions in
+ *   the Splatter API.
+ */
+set SEARCH_PATH to SPLATTER_API, PUBLIC;
+
+/*
+ * Adds a connection request record to the database.
+ */
+create function CREATE_CONNECTION_REQUEST(
+       P_SENDER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_RECEIVER_ID_IN        BIGINT,
+       P_MESSAGE_IN            VARCHAR(280))
+  returns BIGINT as $$
+declare
+  V_REQUEST_ID       BIGINT;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_SENDER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Insert the request and return the new request id.
+  insert into SPLATTER.CONNECTION_REQUESTS(
+    SENDER_ID, RECEIVER_ID,
+    CREATED_TIME,
+    MESSAGE)
+  values (
+    P_SENDER_ID_IN, P_RECEIVER_ID_IN,
+    CURRENT_TIMESTAMP,
+    P_MESSAGE_IN)
+  returning REQUEST_ID into V_REQUEST_ID;
+
+  -- Return the new request id.
+  return V_REQUEST_ID;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves a connection request record from the database.
+ */
+create function RETRIEVE_CONNECTION_REQUEST(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_REQUEST_ID_IN         BIGINT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retrieve the request.
+  open C_RESULTS for
+    select *
+      from SPLATTER.CONNECTION_REQUESTS
+     where REQUEST_ID = P_REQUEST_ID_IN
+       and SENDER_ID = P_USER_ID_IN or
+           RECEIVER_ID = P_USER_ID_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Accepts a connection request, deleting the connection
+ * request record and adding a new connection record.
+ */
+create function ACCEPT_CONNECTION_REQUEST(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_REQUEST_ID_IN         BIGINT)
+  returns BIGINT as $$
+declare
+  V_CONNECTION_ID    BIGINT;
+  V_FOLLOWER_ID      BIGINT;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Delete the request.
+  delete
+    from SPLATTER.CONNECTION_REQUESTS
+   where REQUEST_ID = P_REQUEST_ID
+     and RECEIVER_ID = P_USER_ID_IN
+  returning SENDER_ID
+    into strict V_FOLLOWER_ID;
+
+  -- Add the new connection.
+  insert into CONNECTIONS(
+    FOLLOWER_ID, FOLLOWED_ID,
+    CREATED_TIME)
+  values(
+    V_FOLLOWER_ID, P_USER_ID_IN,
+    CURRENT_TIMESTAMP)
+  returning CONNECTION_ID 
+  into strict V_CONNECTION_ID;
+
+  -- Return the connection id.
+  return V_CONNECTION_ID;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Rejects a connection request, deleting the record
+ * from the database.
+ */
+create function REJECT_CONNECTION_REQUEST(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_REQUEST_ID_IN         BIGINT)
+  returns VOID as $$
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Delete the request.
+  delete
+    from SPLATTER.CONNECTION_REQUESTS
+   where REQUEST_ID = P_REQUEST_ID_IN
+     and RECEIVER_ID = P_USER_ID_IN;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Deletes a connection request record from the database.
+ */
+create function DELETE_CONNECTION_REQUEST(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_REQUEST_ID_IN         BIGINT)
+  returns VOID as $$
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Delete the request.
+  delete
+    from SPLATTER.CONNECTION_REQUESTS
+   where REQUEST_ID = P_REQUEST_ID_IN
+     and SENDER_ID = P_USER_ID_IN;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves connection requests for the specified receiving user.
+ * Results are ordered reverse-chronologically.
+ */
+create function VIEW_RECEIVED_CONNECTION_REQUESTS(
+       P_RECEIVER_ID_IN        BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_RECEIVER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retrieve the requests.
+  open C_RESULTS for
+    with PRIV_USERS as (
+      select REQUEST_ID,
+             SENDER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as RECEIVER_FOLLOWING_SENDER,
+             CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
+        from SPLATTER.CONNECTION_REQUESTS
+        join SPLATTER.USERS
+          on USER_ID = SENDER_ID
+         and P_RECEIVER_ID_IN = RECEIVER_ID
+        left outer join SPLATTER.CONNECTIONS
+          on P_RECEIVER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID)
+    select REQUEST_ID,
+           SENDER_ID, USERNAME,
+           case when NAME_PRIVACY
+                then FIRST
+                else null
+           end as FIRST,
+           case when NAME_PRIVACY
+                then MI
+                else null
+           end as MI,
+           case when NAME_PRIVACY
+                then LAST
+                else null
+           end as LAST,
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
+                then EMAIL
+                else null
+           end as EMAIL,
+           EMAIL_PRIVACY,
+           RECEIVER_FOLLOWING_SENDER,
+           CREATED_TIME
+      from PRIV_USERS
+     order by CREATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves connection requests for the specified sending user.
+ * Results are ordered reverse-chronologically.
+ */
+create function VIEW_SENT_CONNECTION_REQUESTS(
+       P_SENDER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_SENDER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retrieve the requests.
+  open C_RESULTS for
+    with PRIV_USERS as (
+      select REQUEST_ID,
+             RECEIVER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as SENDER_FOLLOWING_RECEIVER,
+             SPLATTER.IS_FOLLOWER(
+               RECEIVER_ID, P_SENDER_ID_IN) as RECEIVER_FOLLOWING_SENDER,
+             CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
+        from SPLATTER.CONNECTION_REQUESTS
+        join SPLATTER.USERS
+          on P_SENDER_ID_IN = SENDER_ID
+         and USER_ID = RECEIVER_ID
+        left outer join SPLATTER.CONNECTIONS
+          on P_SENDER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID)
+    select REQUEST_ID,
+           RECEIVER_ID, USERNAME,
+           case when NAME_PRIVACY
+                then FIRST
+                else null
+           end as FIRST,
+           case when NAME_PRIVACY
+                then MI
+                else null
+           end as MI,
+           case when NAME_PRIVACY
+                then LAST
+                else null
+           end as LAST,
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
+                then EMAIL
+                else null
+           end as EMAIL,
+           EMAIL_PRIVACY,
+           SENDER_FOLLOWING_RECEIVER,
+           RECEIVER_FOLLOWING_SENDER,
+           CREATED_TIME
+      from PRIV_USERS
+     order by CREATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+

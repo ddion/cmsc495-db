@@ -1,0 +1,252 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/15/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_splatter_api_update_functions.postgresql
+ * Purpose: This file creates the update management functions in
+ *   the Splatter API.
+ */
+set SEARCH_PATH to SPLATTER_API, PUBLIC;
+
+/*
+ * Adds an update record to the database.
+ */
+create function CREATE_UPDATE(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_MESSAGE_IN            VARCHAR(280))
+  returns BIGINT as $$
+declare
+  V_UPDATE_ID        BIGINT;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Insert the update.
+  insert into SPLATTER.UPDATES(
+    USER_ID,
+    CREATED_TIME, UPDATED_TIME,
+    POSTED, MESSAGE)
+  values (
+    P_USER_ID_IN,
+    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
+    false, P_MESSAGE_IN)
+  returning UPDATE_ID into strict V_UPDATE_ID;
+
+  -- Return the new update id.
+  return V_UPDATE_ID;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves an update record from the database.
+ */
+create function RETRIEVE_UPDATE(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_UPDATE_ID_IN          BIGINT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retrieve the update.
+  open C_RESULTS for
+    select *
+      from SPLATTER.UPDATES
+     where UPDATE_ID = P_UPDATE_ID_IN
+       and USER_ID = P_USER_ID_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves updates for the specified owning user.
+ * Results are ordered reverse-chronologically.
+ */
+create function RETREIVE_UPDATES(
+       P_OWNER_ID_IN           BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_OWNER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retreive the updates.
+  open C_RESULTS for
+    select *
+      from SPLATTER.UPDATES
+     where USER_ID = P_OWNER_ID_IN
+     order by UPDATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Saves an existing update record in the database.
+ */
+create function SAVE_UPDATE(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_UPDATE_ID_IN          BIGINT,
+       P_MESSAGE_IN            VARCHAR(280))
+  returns VOID as $$
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Update the update.
+  update SPLATTER.UPDATES
+     set MESSAGE = P_MESSAGE_IN,
+         UPDATED_TIME = CURRENT_TIMESTAMP
+   where UPDATE_ID = P_UPDATE_ID_IN
+     and USER_ID = P_USER_ID_IN;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Posts an existing update record in the database.
+ */
+create function POST_UPDATE(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_UPDATE_ID_IN          BIGINT)
+  returns VOID as $$
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Delete the update.
+  update SPLATTER.UPDATES
+     set POSTED = true
+   where UPDATE_ID = P_UPDATE_ID_IN
+     and USER_ID = P_USER_ID_IN;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Deletes an update record from the database.
+ */
+create function DELETE_UPDATE(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_UPDATE_ID_IN          BIGINT)
+  returns VOID as $$
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Delete the update.
+  delete
+    from SPLATTER.UPDATES
+   where UPDATE_ID = P_UPDATE_ID_IN
+     and USER_ID = P_USER_ID_IN;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Finds updates from all users being followed.
+ * Results are ordered reverse-chronologically.
+ */
+create function VIEW_FOLLOWED_UPDATES(
+       P_VIEWER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retrieve the updates.
+  open C_RESULTS for
+    select UPDATE_ID,
+           UPDATES.USER_ID as USER_ID,
+           USERNAME,
+           UPDATED_TIME as POSTED_TIME,
+           MESSAGE
+      from SPLATTER.UPDATES
+      join SPLATTER.CONNECTIONS
+      join SPLATTER.USERS
+        on USER_ID = FOLLOWED_ID
+     using (USER_ID)
+     where POSTED
+       and FOLLOWER_ID = P_VIEWER_ID_IN
+     order by UPDATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Finds all updates from a specified user.
+ * This function requires the ID of the viewing user in order
+ * to respect privacy settings.
+ * Results are ordered reverse-chronologically.
+ */
+create function VIEW_USER_UPDATES(
+       P_VIEWER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_OWNER_ID_IN           BIGINT,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retrieve the updates.
+  open C_RESULTS for
+    select UPDATE_ID,
+           UPDATES.USER_ID as USER_ID,
+           USERNAME,
+           UPDATED_TIME as POSTED_TIME,
+           MESSAGE
+      from SPLATTER.UPDATES
+      join SPLATTER.CONNECTIONS
+      join SPLATTER.USERS
+        on USER_ID = FOLLOWED_ID
+     using (USER_ID)
+     where POSTED
+       and USER_ID = P_OWNER_ID_IN
+       and FOLLOWER_ID = P_VIEWER_ID_IN
+     order by UPDATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;

@@ -1,0 +1,153 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/15/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_splatter_api_connection_functions.postgresql
+ * Purpose: This file creates the connection management functions in
+ *   the Splatter API.
+ */
+set SEARCH_PATH to SPLATTER_API, PUBLIC;
+
+/*
+ * Retrieves records of users who are being followed by
+ * the specified user.
+ * Results are ordered lexicographically by username.
+ */
+create function VIEW_FOLLOWED_USERS(
+       P_VIEWER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retrieve followed users.
+  open C_RESULTS for
+    with PRIV_USERS as (
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER.HAS_ACCESS(
+               NAME_PRIVACY,
+               true) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               true) as EMAIL_PRIVACY,
+             C2.FOLLOWER_ID is not null as USER_FOLLOWING_VIEWER,
+             C1.CREATED_TIME as CREATED_TIME
+        from SPLATTER.CONNECTIONS as C1
+        join SPLATTER.USERS
+          on P_VIEWER_ID_IN = C1.FOLLOWER_ID
+         and USER_ID = C1.FOLLOWED_ID
+        left outer join SPLATTER.CONNECTIONS as C2
+          on USER_ID = C2.FOLLOWER_ID
+         and P_VIEWER_ID_IN = C2.FOLLOWED_ID)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
+                then FIRST
+                else null
+           end as FIRST,
+           case when NAME_PRIVACY
+                then MI
+                else null
+           end as MI,
+           case when NAME_PRIVACY
+                then LAST
+                else null
+           end as LAST,
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
+                then EMAIL
+                else null
+           end as EMAIL,
+           EMAIL_PRIVACY,
+           USER_FOLLOWING_VIEWER,
+           CREATED_TIME
+      from PRIV_USERS
+     order by CREATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves records of users who are following the specified user.
+ * Results are ordered lexicographically by username.
+ */
+create function VIEW_FOLLOWERS(
+       P_VIEWER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_RESULTS_OFFSET_IN     INT,
+       P_RESULTS_COUNT_IN      INT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retrieve followers.
+  open C_RESULTS for
+    with PRIV_USERS as (
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER.HAS_ACCESS(
+               NAME_PRIVACY,
+               C2.FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               C2.FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             C2.FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             C1.CREATED_TIME as CREATED_TIME
+        from SPLATTER.CONNECTIONS as C1
+        join SPLATTER.USERS
+          on USER_ID = C1.FOLLOWER_ID
+         and P_VIEWER_ID_IN = C1.FOLLOWED_ID
+        left outer join SPLATTER.CONNECTIONS as C2
+          on P_VIEWER_ID_IN = C2.FOLLOWER_ID
+         and USER_ID = C2.FOLLOWED_ID)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
+                then FIRST
+                else null
+           end as FIRST,
+           case when NAME_PRIVACY
+                then MI
+                else null
+           end as MI,
+           case when NAME_PRIVACY
+                then LAST
+                else null
+           end as LAST,
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
+                then EMAIL
+                else null
+           end as EMAIL,
+           EMAIL_PRIVACY,
+           USER_FOLLOWING_VIEWER,
+           CREATED_TIME
+      from PRIV_USERS
+     order by CREATED_TIME desc
+     limit P_RESULTS_COUNT_IN
+    offset P_RESULTS_OFFSET_IN;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;

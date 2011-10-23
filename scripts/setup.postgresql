@@ -11,7 +11,41 @@
  * Purpose: This is the top level file that runs all of the
  *          database creation scripts.
  */
+set SEARCH_PATH to PUBLIC;
 
-\i create_entity_tables.postgresql
-\i create_functions.postgresql
+/*
+ * Load the PL/pgSQL language.
+ */
+create extension if not exists PLPGSQL;
+
+/*
+ * Drop the schemas if they exist.
+ */
+drop schema if exists SPLATTER_API cascade;
+drop schema if exists SPLATTER cascade;
+
+/*
+ * Drop the users if they exist.
+ */
+drop user if exists SPLATTER_USER;
+
+/*
+ * Create the schemas.
+ */
+create schema SPLATTER;
+create schema SPLATTER_API;
+
+/*
+ * Run the creation scripts.
+ */
+\i create_splatter_entity_tables.postgresql
+\i create_splatter_auth_tables.postgresql
+\i create_splatter_audit_tables.postgresql
+\i create_splatter_audit_triggers.postgresql
+\i create_splatter_functions.postgresql
+\i create_splatter_api_auth_functions.postgresql
+\i create_splatter_api_user_functions.postgresql
+\i create_splatter_api_update_functions.postgresql
+\i create_splatter_api_request_functions.postgresql
+\i create_splatter_api_connection_functions.postgresql
 \i create_roles.postgresql

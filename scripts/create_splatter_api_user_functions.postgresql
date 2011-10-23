@@ -1,0 +1,395 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/15/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_splatter_api_user_functions.postgresql
+ * Purpose: This file creates the user management functions in
+ *   the Splatter API.
+ */
+set SEARCH_PATH to SPLATTER_API, PUBLIC;
+
+/*
+ * Adds a user record to the database.
+ */
+create function CREATE_USER(
+       P_USERNAME_IN           VARCHAR,
+       P_PASSWORD_IN           VARCHAR,
+       P_FIRST_IN              VARCHAR,
+       P_MI_IN                 CHAR(1),
+       P_LAST_IN               VARCHAR,
+       P_NAME_PRIVACY_IN       SPLATTER.ACCESS_LEVEL,
+       P_EMAIL_IN              VARCHAR,
+       P_EMAIL_PRIVACY_IN      SPLATTER.ACCESS_LEVEL)
+  returns BIGINT as $$
+declare
+  V_USER_ID          BIGINT;
+begin
+  -- Insert the user.
+  insert into SPLATTER.USERS(
+    CREATED_TIME, UPDATED_TIME,
+    USERNAME, PASSWORD,
+    FIRST, MI, LAST, NAME_PRIVACY,
+    EMAIL, EMAIL_PRIVACY)
+  values (
+    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
+    P_USERNAME_IN, P_PASSWORD_IN,
+    P_FIRST_IN, P_MI_IN, P_LAST_IN, P_NAME_PRIVACY_IN,
+    P_EMAIL_IN, P_EMAIL_PRIVACY_IN)
+  returning USER_ID into strict V_USER_ID;
+
+  -- Return the new user id.
+  return V_USER_ID;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves a user record from the database.
+ */
+create function RETREIVE_USER(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Retrieve the user.
+  open C_RESULTS for
+    select *
+      from SPLATTER.USERS
+     where USER_ID = P_USER_ID_IN;
+
+  -- Return the results;
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Updates an existing user record in the database.
+ */
+create function UPDATE_USER(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_USERNAME_IN           VARCHAR,
+       P_PASSWORD_IN           VARCHAR,
+       P_FIRST_IN              VARCHAR,
+       P_MI_IN                 CHAR(1),
+       P_LAST_IN               VARCHAR,
+       P_NAME_PRIVACY_IN       SPLATTER.ACCESS_LEVEL,
+       P_EMAIL_IN              VARCHAR,
+       P_EMAIL_PRIVACY_IN      SPLATTER.ACCESS_LEVEL)
+  returns VOID as $$
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Update the user record.
+  update SPLATTER.USERS
+     set UPDATED_TIME = CURRENT_TIMESTAMP,
+         USERNAME = P_USERNAME_IN,
+         PASSWORD = P_PASSWORD_IN,
+         FIRST = P_FIRST_IN,
+         MI = P_MI_IN,
+         LAST = P_LAST_IN,
+         NAME_PRIVACY = P_NAME_PRIVACY_IN,
+         EMAIL = P_EMAIL_IN,
+         EMAIL_PRIVACY = P_EMAIL_PRIVACY_IN
+   where USER_ID = P_USER_ID_IN;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Deletes a user record from the database.
+ */
+create function DELETE_USER(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR)
+  returns VOID as $$
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Delete the user record.
+  delete
+    from SPLATTER.USERS
+   where USER_ID = P_USER_ID_IN;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Allows a user to view another user's account.
+ * The ID of the searching user must be supplied in order
+ * to filter results according to privacy settings.
+ */
+create function VIEW_USER(
+       P_VIEWER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_USER_ID_IN            BIGINT)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
+
+ -- Find the user.
+  open C_RESULTS for
+    with PRIV_USERS as(
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             SPLATTER.IS_FOLLOWER(
+               USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+        from SPLATTER.USERS
+        left outer join SPLATTER.CONNECTIONS
+          on P_VIEWER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID
+       where USER_ID = P_USER_ID_IN)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
+                then FIRST
+                else null
+           end as FIRST,
+           case when NAME_PRIVACY
+                then MI
+                else null
+           end as MI,
+           case when NAME_PRIVACY
+                then LAST
+                else null
+           end as LAST,
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
+                then EMAIL
+                else null
+           end as EMAIL,
+           EMAIL_PRIVACY,
+           VIEWER_FOLLOWING_USER,
+           USER_FOLLOWING_VIEWER
+      from PRIV_USERS;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves user records matching a name.
+ * The ID of the searching user must be supplied in order
+ * to filter results according to privacy settings.
+ */
+create function FIND_USER_BY_NAME(
+       P_VIEWER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_FIRST_IN              VARCHAR,
+       P_MI_IN                 CHAR(1),
+       P_LAST_IN               VARCHAR)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
+
+ -- Find the user(s).
+  open C_RESULTS for
+    with PRIV_USERS as(
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             SPLATTER.IS_FOLLOWER(
+               USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+        from SPLATTER.USERS
+        left outer join SPLATTER.CONNECTIONS
+          on P_VIEWER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID
+       where NAME_PRIVACY
+         and (P_FIRST_IN is not null or
+              P_MI_IN is not null or
+              P_LAST_IN is not null)
+         and (P_FIRST_IN is null or P_FIRST_IN ilike FIRST)
+         and (P_MI_IN is null or P_MI_IN ilike MI)
+         and (P_LAST_IN is null or P_LAST_IN ilike LAST))
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
+                then FIRST
+                else null
+           end as FIRST,
+           case when NAME_PRIVACY
+                then MI
+                else null
+           end as MI,
+           case when NAME_PRIVACY
+                then LAST
+                else null
+           end as LAST,
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
+                then EMAIL
+                else null
+           end as EMAIL,
+           EMAIL_PRIVACY,
+           VIEWER_FOLLOWING_USER,
+           USER_FOLLOWING_VIEWER
+      from PRIV_USERS;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves user records matching a username.
+ * The ID of the searching user must be supplied in order
+ * to filter results according to privacy settings.
+ */
+create function FIND_USER_BY_USERNAME(
+       P_VIEWER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_USERNAME_IN           VARCHAR)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Find the user.
+  open C_RESULTS for
+    with PRIV_USERS as(
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             SPLATTER.IS_FOLLOWER(
+               USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+        from SPLATTER.USERS
+        left outer join SPLATTER.CONNECTIONS
+          on P_VIEWER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID
+       where USERNAME = P_USERNAME_IN)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
+                then FIRST
+                else null
+           end as FIRST,
+           case when NAME_PRIVACY
+                then MI
+                else null
+           end as MI,
+           case when NAME_PRIVACY
+                then LAST
+                else null
+           end as LAST,
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
+                then EMAIL
+                else null
+           end as EMAIL,
+           EMAIL_PRIVACY,
+           VIEWER_FOLLOWING_USER,
+           USER_FOLLOWING_VIEWER
+      from PRIV_USERS;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;
+
+/*
+ * Retrieves user records matching an email.
+ * The ID of the searching user must be supplied in order
+ * to filter results according to privacy settings.
+ */
+create function FIND_USER_BY_EMAIL(
+       P_VIEWER_ID_IN          BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_EMAIL_IN              VARCHAR)
+  returns REFCURSOR as $$
+declare
+  C_RESULTS          REFCURSOR;
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Find the user.
+  open C_RESULTS for
+    with PRIV_USERS as(
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             SPLATTER.IS_FOLLOWER(
+               USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+        from SPLATTER.USERS
+        left outer join SPLATTER.CONNECTIONS
+          on P_VIEWER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID
+      where EMAIL = P_EMAIL_IN)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
+                then FIRST
+                else null
+           end as FIRST,
+           case when NAME_PRIVACY
+                then MI
+                else null
+           end as MI,
+           case when NAME_PRIVACY
+                then LAST
+                else null
+           end as LAST,
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
+                then EMAIL
+                else null
+           end as EMAIL,
+           EMAIL_PRIVACY,
+           VIEWER_FOLLOWING_USER,
+           USER_FOLLOWING_VIEWER
+      from PRIV_USERS;
+
+  -- Return the results.
+  return C_RESULTS;
+end;
+$$ language PLPGSQL security definer;

@@ -7,17 +7,9 @@
  *  PostgreSQL 9.1
  *  Ubuntu 11.10
  *
- * File:    create_entity_tables.postgresql
- * Purpose: This file creates the database tables.
+ * File:    create_splatter_entity_tables.postgresql
+ * Purpose: This file creates the database entity tables.
  */
-
-/*
- * Create the schema.
- */
-drop schema if exists SPLATTER cascade;
-
-create schema SPLATTER;
-
 set SEARCH_PATH to SPLATTER, PUBLIC;
 
 /*

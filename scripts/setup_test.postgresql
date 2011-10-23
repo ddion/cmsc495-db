@@ -1,0 +1,38 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/23/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    setup_test.postgresql
+ * Purpose: This is the top level file that runs all of the
+ *          database creation scripts, adding test support functions.
+ *          This script should only used for test database creation;
+ *          for production databases, use setup.postgresql.
+ */
+
+/*
+ * Drop the test schema if it exists.
+ */
+drop schema if exists SPLATTER_TEST cascade;
+
+/*
+ * Drop the test user if it exists.
+ */
+drop user if exists SPLATTER_TEST;
+
+/*
+ * Create the test schema.
+ */
+create schema SPLATTER_TEST;
+
+/*
+ * Run the production setup script, followed by the test creation scripts.
+ */
+\i setup.postgresql
+\i create_splatter_test_functions.postgresql
+\i create_test_roles.postgresql
+

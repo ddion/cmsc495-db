@@ -1,0 +1,17 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/23/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_splatter_audit_triggers.postgresql
+ * Purpose: This file creates triggers for tracking changes to entity tables.
+ */
+set SEARCH_PATH to SPLATTER, PUBLIC;
+
+/*
+ * TODO: Add triggers for logging changes to entity tables.
+ */

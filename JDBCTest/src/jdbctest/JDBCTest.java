@@ -1,16 +1,14 @@
-// Package: jdbctest
-// File: JDBCTest.java
-// Author: Michael Songy (msongy)
-// Project:
-// Purpose:
+// Course:   CMSC495 - Trends and Projects in Computer Science
+// Project:  Splatter - Team 1
+// Author:   Michael Songy (msongy)
+// Package:  jdbctest
+// File:     JDBCTest.java
+// Platform: JDK 7
+//           NetBeans IDE 7.0.1
+//           PostgreSQL 9.1
+//           Ubuntu 11.10
+// Purpose:  Blah.
 package jdbctest;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
 
 /**
  *
@@ -25,7 +23,7 @@ public class JDBCTest {
         try {
             SplatterDB db = SplatterDB.getInstance();
             try (
-                SplatterDBConnection c = db.connect("splatter_user", "5pl@t!");
+                SplatterDBConnection c = db.connect("splatter_test", "T3st5pl@t7er!");
             ) {
                System.out.println("Yay, we connected!");
             }

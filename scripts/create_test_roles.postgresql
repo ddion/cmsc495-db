@@ -1,0 +1,33 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/23/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_test_roles.postgresql
+ * Purpose: This file creates the database roles.
+ */
+set SEARCH_PATH to PUBLIC;
+
+/*
+ * Create the SPLATTER_TEST user.  This user only has access to the
+ * database through the functions in the SPLATTER_API and SPLATTER_TEST
+ * schemas.  This helps ensure security and privacy, since the types of
+ * operations that can be performed on tables are tightly controlled.
+ */
+create user SPLATTER_TEST
+       with password 'T3st5pl@t7er!';
+
+grant SPLATTER_USER
+   to SPLATTER_TEST;
+
+grant usage
+   on schema SPLATTER_TEST
+   to SPLATTER_TEST;
+
+grant execute
+   on all functions in schema SPLATTER_TEST
+   to SPLATTER_TEST;

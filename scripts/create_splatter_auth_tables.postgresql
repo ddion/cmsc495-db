@@ -1,0 +1,29 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/23/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_splatter_auth_tables.postgresql
+ * Purpose: This file creates the database entity tables.
+ */
+set SEARCH_PATH to SPLATTER, PUBLIC;
+
+/*
+ * Create the AUTHORIZED_USERS table.
+ */
+create table AUTHORIZED_USERS(
+  -- Columns
+  USER_ID        BIGSERIAL     not null,
+  SESSION_TOKEN  VARCHAR       not null,
+  LOGIN_TIME     TIMESTAMP     not null,
+  UPDATED_TIME   TIMESTAMP     not null,
+  -- Primary key constraint on USER_ID
+  constraint AUTHORIZED_USERS_PK primary key (USER_ID),
+  -- Foreign key constraint on USER_ID
+  constraint AUTHORIZED_USERS_USERS_FK foreign key (USER_ID)
+             references USERS(USER_ID)
+             on delete cascade);

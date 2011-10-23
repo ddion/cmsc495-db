@@ -1,0 +1,65 @@
+/*
+ * Course:  CMSC495 - Trends and Projects in Computer Science
+ * Project: Splatter - Team 1
+ * Author:  Michael Songy
+ * Date:    10/15/2011
+ * Platform:
+ *  PostgreSQL 9.1
+ *  Ubuntu 11.10
+ *
+ * File:    create_splatter_api_auth_functions.postgresql
+ * Purpose: This file creates the authentication functions in
+ *   the Splatter API.
+ */
+set SEARCH_PATH to SPLATTER_API, PUBLIC;
+
+/*
+ * Logs a user into the database.
+ */
+create function LOGIN(
+   out P_USER_ID_OUT           BIGINT,
+   out P_AUTH_TOKEN_OUT        VARCHAR,
+       P_USERNAME_IN           VARCHAR,
+       P_PASSWORD_IN           VARCHAR)
+  as $$
+begin
+  -- Check that the username/password combo exists.
+  select USER_ID
+    into strict P_USER_ID_OUT
+    from SPLATTER.USERS
+   where USERNAME like P_USERNAME_IN
+     and PASSWORD like P_PASSWORD_IN;
+
+  -- See if the user is already logged in.  If so, return the existing auth
+  -- token, otherwise create a new one.
+  update SPLATTER.AUTHORIZED_USERS
+     set UPDATED_TIME = CURRENT_TIMESTAMP
+   where USER_ID = P_USER_ID_OUT
+  returning SESSION_TOKEN into P_AUTH_TOKEN_OUT;
+  if not FOUND then
+    insert into SPLATTER.AUTHORIZED_USERS(
+      USER_ID, SESSION_TOKEN,
+      LOGIN_TIME, UPDATED_TIME)
+    values (
+      P_USER_ID_OUT, SPLATTER.CREATE_AUTH_TOKEN(),
+      CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    returning SESSION_TOKEN into strict P_AUTH_TOKEN_OUT;
+  end if;
+end;
+$$ language PLPGSQL security definer;
+ 
+/*
+ * Logs a user out of the database.
+ */
+create function LOGOUT(
+       P_USERNAME_IN           VARCHAR,
+       P_AUTH_TOKEN_IN         VARCHAR)
+  returns VOID as $$   
+begin
+  -- Delete the auth session.
+  delete
+    from SPLATTER.AUTHORIZED_USERS
+   where USERNAME like P_USERNAME_IN
+     and SESSION_TOKEN like P_AUTH_TOKEN_IN;
+end;
+$$ language PLPGSQL security definer;
