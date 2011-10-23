@@ -22,13 +22,13 @@ set SEARCH_PATH to SPLATTER_API, PUBLIC;
 drop user if exists SPLATTER_USER;
 
 create user SPLATTER_USER 
-       with PASSWORD '5pl@t!';
+       with password '5pl@t!';
 
-grant USAGE
-   on SCHEMA SPLATTER_API
+grant usage
+   on schema SPLATTER_API
    to SPLATTER_USER;
 
-grant EXECUTE
-   on ALL FUNCTIONS IN SCHEMA SPLATTER_API
+grant execute
+   on all functions in schema SPLATTER_API
    to SPLATTER_USER;
 

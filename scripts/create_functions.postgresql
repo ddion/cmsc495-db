@@ -178,42 +178,46 @@ declare
 begin
   -- Find the user.
   open C_RESULTS for
-    select USER_ID,
-           USERNAME,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+    with PRIV_USERS as(
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER_API.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER_API.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             SPLATTER_API.IS_FOLLOWER(
+               USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+        from SPLATTER.USERS
+        left outer join SPLATTER.CONNECTIONS
+          on P_VIEWER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID
+       where USER_ID = P_USER_ID_IN)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
                 then FIRST
                 else null
            end as FIRST,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           case when NAME_PRIVACY
                 then MI
                 else null
            end as MI,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           case when NAME_PRIVACY
                 then LAST
                 else null
            end as LAST,
-           HAS_ACCESS(
-             NAME_PRIVACY,
-             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as NAME_PRIVACY,
-           case when HAS_ACCESS(
-                       EMAIL_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
                 then EMAIL
                 else null
            end as EMAIL,
-           HAS_ACCESS(
-             EMAIL_PRIVACY,
-             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
-           IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
-           IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
-      from SPLATTER.USERS
-     where USER_ID = P_USER_ID_IN;
+           EMAIL_PRIVACY,
+           VIEWER_FOLLOWING_USER,
+           USER_FOLLOWING_VIEWER
+      from PRIV_USERS;
 
   -- Return the results.
   return C_RESULTS;
@@ -236,48 +240,52 @@ declare
 begin
   -- Find the user(s).
   open C_RESULTS for
-    select USER_ID,
-           USERNAME,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+    with PRIV_USERS as(
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER_API.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER_API.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             SPLATTER_API.IS_FOLLOWER(
+               USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+        from SPLATTER.USERS
+        left outer join SPLATTER.CONNECTIONS
+          on P_VIEWER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID
+       where NAME_PRIVACY
+         and (P_FIRST_IN is not null or
+              P_MI_IN is not null or
+              P_LAST_IN is not null)
+         and (P_FIRST_IN is null or P_FIRST_IN ilike FIRST)
+         and (P_MI_IN is null or P_MI_IN ilike MI)
+         and (P_LAST_IN is null or P_LAST_IN ilike LAST))
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
                 then FIRST
                 else null
            end as FIRST,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           case when NAME_PRIVACY
                 then MI
                 else null
            end as MI,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           case when NAME_PRIVACY
                 then LAST
                 else null
            end as LAST,
-           HAS_ACCESS(
-             NAME_PRIVACY,
-             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as NAME_PRIVACY,
-           case when HAS_ACCESS(
-                       EMAIL_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
                 then EMAIL
                 else null
            end as EMAIL,
-           HAS_ACCESS(
-             EMAIL_PRIVACY,
-             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
-           IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
-           IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
-      from SPLATTER.USERS
-     where NAME_PRIVACY
-       and (P_FIRST_IN is not null or
-            P_MI_IN is not null or
-            P_LAST_IN is not null)
-       and (P_FIRST_IN is null or P_FIRST_IN ilike FIRST)
-       and (P_MI_IN is null or P_MI_IN ilike MI)
-       and (P_LAST_IN is null or P_LAST_IN ilike LAST);
+           EMAIL_PRIVACY,
+           VIEWER_FOLLOWING_USER,
+           USER_FOLLOWING_VIEWER
+      from PRIV_USERS;
 
   -- Return the results.
   return C_RESULTS;
@@ -298,42 +306,46 @@ declare
 begin
   -- Find the user.
   open C_RESULTS for
-    select USER_ID,
-           USERNAME,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+    with PRIV_USERS as(
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER_API.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER_API.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             SPLATTER_API.IS_FOLLOWER(
+               USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+        from SPLATTER.USERS
+        left outer join SPLATTER.CONNECTIONS
+          on P_VIEWER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID
+       where USERNAME = P_USERNAME_IN)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
                 then FIRST
                 else null
            end as FIRST,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           case when NAME_PRIVACY
                 then MI
                 else null
            end as MI,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           case when NAME_PRIVACY
                 then LAST
                 else null
            end as LAST,
-           HAS_ACCESS(
-             NAME_PRIVACY,
-             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as NAME_PRIVACY,
-           case when HAS_ACCESS(
-                       EMAIL_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
                 then EMAIL
                 else null
            end as EMAIL,
-           HAS_ACCESS(
-             EMAIL_PRIVACY,
-             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
-           IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
-           IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
-      from SPLATTER.USERS
-      where USERNAME = P_USERNAME_IN;
+           EMAIL_PRIVACY,
+           VIEWER_FOLLOWING_USER,
+           USER_FOLLOWING_VIEWER
+      from PRIV_USERS;
 
   -- Return the results.
   return C_RESULTS;
@@ -354,42 +366,46 @@ declare
 begin
   -- Find the user.
   open C_RESULTS for
-    select USER_ID,
-           USERNAME,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+    with PRIV_USERS as(
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER_API.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER_API.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             SPLATTER_API.IS_FOLLOWER(
+               USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
+        from SPLATTER.USERS
+        left outer join SPLATTER.CONNECTIONS
+          on P_VIEWER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID
+      where EMAIL = P_EMAIL_IN)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
                 then FIRST
                 else null
            end as FIRST,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           case when NAME_PRIVACY
                 then MI
                 else null
            end as MI,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           case when NAME_PRIVACY
                 then LAST
                 else null
            end as LAST,
-           HAS_ACCESS(
-             NAME_PRIVACY,
-             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as NAME_PRIVACY,
-           case when HAS_ACCESS(
-                       EMAIL_PRIVACY,
-                       IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID))
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
                 then EMAIL
                 else null
            end as EMAIL,
-           HAS_ACCESS(
-             EMAIL_PRIVACY,
-             IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
-           IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
-           IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
-      from SPLATTER.USERS
-     where EMAIL = P_EMAIL_IN;
+           EMAIL_PRIVACY,
+           VIEWER_FOLLOWING_USER,
+           USER_FOLLOWING_VIEWER
+      from PRIV_USERS;
 
   -- Return the results.
   return C_RESULTS;
@@ -649,7 +665,7 @@ begin
   delete
     from SPLATTER.CONNECTION_REQUESTS
    where REQUEST_ID = P_REQUEST_ID
-  returning FOLLOWER_ID, FOLLOWED_ID
+  returning SENDER_ID, RECEIVER_ID
     into strict V_FOLLOWER_ID, V_FOLLOWED_ID;
 
   -- Add the new connection.
@@ -710,45 +726,49 @@ declare
 begin
   -- Retrieve the requests.
   open C_RESULTS for
+    with PRIV_USERS as (
+      select REQUEST_ID,
+             SENDER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER_API.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER_API.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as RECEIVER_FOLLOWING_SENDER,
+             CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
+        from SPLATTER.CONNECTION_REQUESTS
+        join SPLATTER.USERS
+          on USER_ID = SENDER_ID
+         and P_RECEIVER_ID_IN = RECEIVER_ID
+        left outer join SPLATTER.CONNECTIONS
+          on P_RECEIVER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID)
     select REQUEST_ID,
-           SENDER_ID,
-           USERNAME,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID))
+           SENDER_ID, USERNAME,
+           case when NAME_PRIVACY
                 then FIRST
                 else null
            end as FIRST,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID))
+           case when NAME_PRIVACY
                 then MI
                 else null
            end as MI,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID))
+           case when NAME_PRIVACY
                 then LAST
                 else null
            end as LAST,
-           HAS_ACCESS(
-             NAME_PRIVACY,
-             IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID)) as NAME_PRIVACY,
-           case when HAS_ACCESS(
-                       EMAIL_PRIVACY,
-                       IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID))
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
                 then EMAIL
                 else null
            end as EMAIL,
-           HAS_ACCESS(
-             EMAIL_PRIVACY,
-             IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID)) as EMAIL_PRIVACY,
-           IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID) as RECEIVER_FOLLOWING_SENDER,
-           CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
-      from SPLATTER.CONNECTION_REQUESTS
-      join USERS
-        on USER_ID = SENDER_ID
-     where RECEIVER_ID = P_RECEIVER_ID_IN
+           EMAIL_PRIVACY,
+           RECEIVER_FOLLOWING_SENDER,
+           CREATED_TIME
+      from PRIV_USERS
      order by CREATED_TIME desc
      limit P_RESULTS_COUNT_IN
     offset P_RESULTS_OFFSET_IN;
@@ -772,45 +792,52 @@ declare
 begin
   -- Retrieve the requests.
   open C_RESULTS for
+    with PRIV_USERS as (
+      select REQUEST_ID,
+             RECEIVER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER_API.HAS_ACCESS(
+               NAME_PRIVACY,
+               FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER_API.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             FOLLOWER_ID is not null as SENDER_FOLLOWING_RECEIVER,
+             SPLATTER_API.IS_FOLLOWER(
+               RECEIVER_ID, P_SENDER_ID_IN) as RECEIVER_FOLLOWING_SENDER,
+             CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
+        from SPLATTER.CONNECTION_REQUESTS
+        join SPLATTER.USERS
+          on P_SENDER_ID_IN = SENDER_ID
+         and USER_ID = RECEIVER_ID
+        left outer join SPLATTER.CONNECTIONS
+          on P_SENDER_ID_IN = FOLLOWER_ID
+         and USER_ID = FOLLOWED_ID)
     select REQUEST_ID,
-           RECEIVER_ID,
-           USERNAME,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID))
+           RECEIVER_ID, USERNAME,
+           case when NAME_PRIVACY
                 then FIRST
                 else null
            end as FIRST,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID))
+           case when NAME_PRIVACY
                 then MI
                 else null
            end as MI,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID))
+           case when NAME_PRIVACY
                 then LAST
                 else null
            end as LAST,
-           HAS_ACCESS(
-             NAME_PRIVACY,
-             IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID)) as NAME_PRIVACY,
-           case when HAS_ACCESS(
-                       EMAIL_PRIVACY,
-                       IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID))
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
                 then EMAIL
                 else null
            end as EMAIL,
-           HAS_ACCESS(
-             EMAIL_PRIVACY,
-             IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID)) as EMAIL_PRIVACY,
-           IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID) as SENDER_FOLLOWING_RECEIVER,
-           CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
-      from SPLATTER.CONNECTION_REQUESTS
-      join SPLATTER.USERS
-        on USER_ID = RECEIVER_ID
-     where SENDER_ID = P_SENDER_ID_IN
+           EMAIL_PRIVACY,
+           SENDER_FOLLOWING_RECEIVER,
+           RECEIVER_FOLLOWING_SENDER,
+           CREATED_TIME
+      from PRIV_USERS
      order by CREATED_TIME desc
      limit P_RESULTS_COUNT_IN
     offset P_RESULTS_OFFSET_IN;
@@ -835,33 +862,48 @@ declare
 begin
   -- Retrieve followed users.
   open C_RESULTS for
-    select USER_ID,
-           USERNAME,
-           case when HAS_ACCESS(NAME_PRIVACY, true)
+    with PRIV_USERS as (
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER_API.HAS_ACCESS(
+               NAME_PRIVACY,
+               true) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER_API.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               true) as EMAIL_PRIVACY,
+             C2.FOLLOWER_ID is not null as USER_FOLLOWING_VIEWER,
+             C1.CREATED_TIME as CREATED_TIME
+        from SPLATTER.CONNECTIONS as C1
+        join SPLATTER.USERS
+          on P_VIEWER_ID_IN = C1.FOLLOWER_ID
+         and USER_ID = C1.FOLLOWED_ID
+        left outer join SPLATTER.CONNECTIONS as C2
+          on USER_ID = C2.FOLLOWER_ID
+         and P_VIEWER_ID_IN = C2.FOLLOWED_ID)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
                 then FIRST
                 else null
            end as FIRST,
-           case when HAS_ACCESS(NAME_PRIVACY, true)
+           case when NAME_PRIVACY
                 then MI
                 else null
            end as MI,
-           case when HAS_ACCESS(NAME_PRIVACY, true)
+           case when NAME_PRIVACY
                 then LAST
                 else null
            end as LAST,
-           HAS_ACCESS(NAME_PRIVACY, true) as NAME_PRIVACY,
-           case when HAS_ACCESS(NAME_PRIVACY, true) 
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
                 then EMAIL
                 else null
            end as EMAIL,
-           HAS_ACCESS(EMAIL_PRIVACY, true) as EMAIL_PRIVACY,
-           IS_FOLLOWING(FOLLOWED_ID, FOLLOWER_ID) as USER_FOLLOWING_VIEWER,
-           CONNECTIONS.CREATED_TIME
-      from SPLATTER.CONNECTIONS
-      join SPLATTER.USERS
-        on USER_ID = FOLLOWED_ID
-     where FOLLOWER_ID = P_VIEWER_ID_IN
-     order by USERNAME asc
+           EMAIL_PRIVACY,
+           USER_FOLLOWING_VIEWER,
+           CREATED_TIME
+      from PRIV_USERS
+     order by CREATED_TIME desc
      limit P_RESULTS_COUNT_IN
     offset P_RESULTS_OFFSET_IN;
 
@@ -884,45 +926,48 @@ declare
 begin
   -- Retrieve followers.
   open C_RESULTS for
-    select USER_ID,
-           USERNAME,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID))
+    with PRIV_USERS as (
+      select USER_ID, USERNAME,
+             FIRST, MI, LAST,
+             SPLATTER_API.HAS_ACCESS(
+               NAME_PRIVACY,
+               C2.FOLLOWER_ID is not null) as NAME_PRIVACY,
+             EMAIL,
+             SPLATTER_API.HAS_ACCESS(
+               EMAIL_PRIVACY,
+               C2.FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+             C2.FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
+             C1.CREATED_TIME as CREATED_TIME
+        from SPLATTER.CONNECTIONS as C1
+        join SPLATTER.USERS
+          on USER_ID = C1.FOLLOWER_ID
+         and P_VIEWER_ID_IN = C1.FOLLOWED_ID
+        left outer join SPLATTER.CONNECTIONS as C2
+          on P_VIEWER_ID_IN = C2.FOLLOWER_ID
+         and USER_ID = C2.FOLLOWED_ID)
+    select USER_ID, USERNAME,
+           case when NAME_PRIVACY
                 then FIRST
                 else null
            end as FIRST,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID))
+           case when NAME_PRIVACY
                 then MI
                 else null
            end as MI,
-           case when HAS_ACCESS(
-                       NAME_PRIVACY,
-                       IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID))
+           case when NAME_PRIVACY
                 then LAST
                 else null
            end as LAST,
-           HAS_ACCESS(
-             NAME_PRIVACY,
-             IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID)) as NAME_PRIVACY,
-           case when HAS_ACCESS(
-                       EMAIL_PRIVACY,
-                       IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID))
+           NAME_PRIVACY,
+           case when EMAIL_PRIVACY
                 then EMAIL
                 else null
            end as EMAIL,
-           HAS_ACCESS(
-             EMAIL_PRIVACY,
-             IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID)) as EMAIL_PRIVACY,
-           IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID) as VIEWER_FOLLOWING_USER,
-           CONNECTIONS.CREATED_TIME
-      from SPLATTER.CONNECTIONS
-      join SPLATTER.USERS
-        on USER_ID = FOLLOWER_ID
-     where FOLLOWED_ID = P_VIEWER_ID_IN
-     order by USERNAME asc
+           EMAIL_PRIVACY,
+           USER_FOLLOWING_VIEWER,
+           CREATED_TIME
+      from PRIV_USERS
+     order by CREATED_TIME desc
      limit P_RESULTS_COUNT_IN
     offset P_RESULTS_OFFSET_IN;
 
