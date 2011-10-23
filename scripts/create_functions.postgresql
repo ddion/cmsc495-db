@@ -44,7 +44,7 @@ declare
   V_USER_ID          BIGINT;
 begin
   -- Insert the user.
-  insert into USERS(
+  insert into SPLATTER.USERS(
     CREATED_TIME, UPDATED_TIME,
     USERNAME, PASSWORD,
     FIRST, MI, LAST, NAME_PRIVACY,
@@ -59,7 +59,7 @@ begin
   -- Return the new user id.
   return V_USER_ID;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves a user record from the database.
@@ -73,13 +73,13 @@ begin
   -- Retrieve the user.
   open C_RESULTS for
     select *
-      from USERS
+      from SPLATTER.USERS
      where USER_ID = P_USER_ID_IN;
 
   -- Return the results;
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Updates an existing user record in the database.
@@ -97,7 +97,7 @@ create function UPDATE_USER(
   returns VOID as $$
 begin
   -- Update the user record.
-  update USERS
+  update SPLATTER.USERS
      set UPDATED_TIME = CURRENT_TIMESTAMP,
          USERNAME = P_USERNAME_IN,
          PASSWORD = P_PASSWORD_IN,
@@ -109,7 +109,7 @@ begin
          EMAIL_PRIVACY = P_EMAIL_PRIVACY_IN
    where USER_ID = P_USER_ID_IN;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Deletes a user record from the database.
@@ -120,10 +120,10 @@ create function DELETE_USER(
 begin
   -- Delete the user record.
   delete
-    from USERS
+    from SPLATTER.USERS
    where USER_ID = P_USER_ID_IN;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Checks if one user is following another.
@@ -137,7 +137,7 @@ declare
 begin
   -- Check if the connection exists.
   select true into V_IS_FOLLOWER
-    from CONNECTIONS
+    from SPLATTER.CONNECTIONS
    where FOLLOWER_ID = P_FOLLOWER_ID_IN
      and FOLLOWED_ID = P_FOLLOWED_ID_IN;
 
@@ -148,7 +148,7 @@ begin
     return V_IS_FOLLOWER;
   end if;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Checks if one user has access to another's name.
@@ -162,7 +162,7 @@ begin
            P_PRIVACY_IN = 'FOLLOWERS' and
            P_IS_FOLLOWER);
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Allows a user to view another user's account.
@@ -212,13 +212,13 @@ begin
              IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
            IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
            IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
-      from USERS
+      from SPLATTER.USERS
      where USER_ID = P_USER_ID_IN;
 
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves user records matching a name.
@@ -270,7 +270,7 @@ begin
              IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
            IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
            IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
-      from USERS
+      from SPLATTER.USERS
      where NAME_PRIVACY
        and (P_FIRST_IN is not null or
             P_MI_IN is not null or
@@ -282,7 +282,7 @@ begin
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves user records matching a username.
@@ -332,13 +332,13 @@ begin
              IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
            IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
            IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
-      from USERS
+      from SPLATTER.USERS
       where USERNAME = P_USERNAME_IN;
 
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves user records matching an email.
@@ -388,13 +388,13 @@ begin
              IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID)) as EMAIL_PRIVACY,
            IS_FOLLOWER(P_VIEWER_ID_IN, USER_ID) as VIEWER_FOLLOWING_USER,
            IS_FOLLOWER(USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
-      from USERS
+      from SPLATTER.USERS
      where EMAIL = P_EMAIL_IN;
 
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Adds an update record to the database.
@@ -407,7 +407,7 @@ declare
   V_UPDATE_ID        BIGINT;
 begin
   -- Insert the update.
-  insert into UPDATES(
+  insert into SPLATTER.UPDATES(
     USER_ID,
     CREATED_TIME, UPDATED_TIME,
     POSTED, MESSAGE)
@@ -420,7 +420,7 @@ begin
   -- Return the new update id.
   return V_UPDATE_ID;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves an update record from the database.
@@ -434,13 +434,13 @@ begin
   -- Retrieve the update.
   open C_RESULTS for
     select *
-      from UPDATES
+      from SPLATTER.UPDATES
      where UPDATE_ID = P_UPDATE_ID_IN;
 
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves updates for the specified owning user.
@@ -457,7 +457,7 @@ begin
   -- Retreive the updates.
   open C_RESULTS for
     select *
-      from UPDATES
+      from SPLATTER.UPDATES
      where USER_ID = P_OWNER_ID_IN
      order by UPDATED_TIME desc
      limit P_RESULTS_COUNT_IN
@@ -466,7 +466,7 @@ begin
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Saves an existing update record in the database.
@@ -477,12 +477,12 @@ create function SAVE_UPDATE(
   returns VOID as $$
 begin
   -- Update the update.
-  update UPDATES
+  update SPLATTER.UPDATES
      set MESSAGE = P_MESSAGE_IN,
          UPDATED_TIME = CURRENT_TIMESTAMP
    where UPDATE_ID = P_UPDATE_ID_IN;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Posts an existing update record in the database.
@@ -492,11 +492,11 @@ create function POST_UPDATE(
   returns VOID as $$
 begin
   -- Delete the update.
-  update UPDATES
+  update SPLATTER.UPDATES
      set POSTED = true
    where UPDATE_ID = P_UPDATE_ID_IN;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Deletes an update record from the database.
@@ -507,10 +507,10 @@ create function DELETE_UPDATE(
 begin
   -- Delete the update.
   delete
-    from UPDATES
+    from SPLATTER.UPDATES
    where UPDATE_ID = P_UPDATE_ID_IN;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Finds updates from all users being followed.
@@ -531,9 +531,9 @@ begin
            USERNAME,
            UPDATED_TIME as POSTED_TIME,
            MESSAGE
-      from UPDATES
-      join CONNECTIONS
-      join USERS
+      from SPLATTER.UPDATES
+      join SPLATTER.CONNECTIONS
+      join SPLATTER.USERS
         on USER_ID = FOLLOWED_ID
      using (USER_ID)
      where POSTED
@@ -545,7 +545,7 @@ begin
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Finds all updates from a specified user.
@@ -569,9 +569,9 @@ begin
            USERNAME,
            UPDATED_TIME as POSTED_TIME,
            MESSAGE
-      from UPDATES
-      join CONNECTIONS
-      join USERS
+      from SPLATTER.UPDATES
+      join SPLATTER.CONNECTIONS
+      join SPLATTER.USERS
         on USER_ID = FOLLOWED_ID
      using (USER_ID)
      where POSTED
@@ -584,7 +584,7 @@ begin
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Adds a connection request record to the database.
@@ -598,7 +598,7 @@ declare
   V_REQUEST_ID       BIGINT;
 begin
   -- Insert the request and return the new request id.
-  insert into CONNECTION_REQUESTS(
+  insert into SPLATTER.CONNECTION_REQUESTS(
     SENDER_ID, RECEIVER_ID,
     CREATED_TIME,
     MESSAGE)
@@ -611,7 +611,7 @@ begin
   -- Return the new request id.
   return V_REQUEST_ID;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves a connection request record from the database.
@@ -625,13 +625,13 @@ begin
   -- Retrieve the request.
   open C_RESULTS for
     select *
-      from CONNECTION_REQUESTS
+      from SPLATTER.CONNECTION_REQUESTS
      where REQUEST_ID = P_REQUEST_ID_IN;
 
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Accepts a connection request, deleting the connection
@@ -647,7 +647,7 @@ declare
 begin
   -- Delete the request.
   delete
-    from CONNECTION_REQUESTS
+    from SPLATTER.CONNECTION_REQUESTS
    where REQUEST_ID = P_REQUEST_ID
   returning FOLLOWER_ID, FOLLOWED_ID
     into strict V_FOLLOWER_ID, V_FOLLOWED_ID;
@@ -665,7 +665,7 @@ begin
   -- Return the connection id.
   return V_CONNECTION_ID;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Rejects a connection request, deleting the record
@@ -677,10 +677,10 @@ create function REJECT_CONNECTION_REQUEST(
 begin
   -- Delete the request.
   delete
-    from CONNECTION_REQUESTS
+    from SPLATTER.CONNECTION_REQUESTS
    where REQUEST_ID = P_REQUEST_ID_IN;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Deletes a connection request record from the database.
@@ -691,10 +691,10 @@ create function DELETE_CONNECTION_REQUEST(
 begin
   -- Delete the request.
   delete
-    from CONNECTION_REQUESTS
+    from SPLATTER.CONNECTION_REQUESTS
    where REQUEST_ID = P_REQUEST_ID_IN;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves connection requests for the specified receiving user.
@@ -745,7 +745,7 @@ begin
              IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID)) as EMAIL_PRIVACY,
            IS_FOLLOWER(P_RECEIVER_ID_IN, SENDER_ID) as RECEIVER_FOLLOWING_SENDER,
            CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
-      from CONNECTION_REQUESTS
+      from SPLATTER.CONNECTION_REQUESTS
       join USERS
         on USER_ID = SENDER_ID
      where RECEIVER_ID = P_RECEIVER_ID_IN
@@ -756,7 +756,7 @@ begin
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves connection requests for the specified sending user.
@@ -807,8 +807,8 @@ begin
              IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID)) as EMAIL_PRIVACY,
            IS_FOLLOWER(P_SENDER_ID_IN, RECEIVER_ID) as SENDER_FOLLOWING_RECEIVER,
            CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
-      from CONNECTION_REQUESTS
-      join USERS
+      from SPLATTER.CONNECTION_REQUESTS
+      join SPLATTER.USERS
         on USER_ID = RECEIVER_ID
      where SENDER_ID = P_SENDER_ID_IN
      order by CREATED_TIME desc
@@ -818,7 +818,7 @@ begin
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves records of users who are being followed by
@@ -857,8 +857,8 @@ begin
            HAS_ACCESS(EMAIL_PRIVACY, true) as EMAIL_PRIVACY,
            IS_FOLLOWING(FOLLOWED_ID, FOLLOWER_ID) as USER_FOLLOWING_VIEWER,
            CONNECTIONS.CREATED_TIME
-      from CONNECTIONS
-      join USERS
+      from SPLATTER.CONNECTIONS
+      join SPLATTER.USERS
         on USER_ID = FOLLOWED_ID
      where FOLLOWER_ID = P_VIEWER_ID_IN
      order by USERNAME asc
@@ -868,7 +868,7 @@ begin
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;
 
 /*
  * Retrieves records of users who are following the specified user.
@@ -918,8 +918,8 @@ begin
              IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID)) as EMAIL_PRIVACY,
            IS_FOLLOWER(FOLLOWED_ID, FOLLOWER_ID) as VIEWER_FOLLOWING_USER,
            CONNECTIONS.CREATED_TIME
-      from CONNECTIONS
-      join USERS
+      from SPLATTER.CONNECTIONS
+      join SPLATTER.USERS
         on USER_ID = FOLLOWER_ID
      where FOLLOWED_ID = P_VIEWER_ID_IN
      order by USERNAME asc
@@ -929,4 +929,4 @@ begin
   -- Return the results.
   return C_RESULTS;
 end;
-$$ language PLPGSQL;
+$$ language PLPGSQL security definer;

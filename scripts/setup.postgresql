@@ -14,3 +14,4 @@
 
 \i create_entity_tables.postgresql
 \i create_functions.postgresql
+\i create_roles.postgresql
