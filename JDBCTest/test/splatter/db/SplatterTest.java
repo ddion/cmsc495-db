@@ -2,8 +2,8 @@
 // Project:  Splatter - Team 1
 // Author:   Michael Songy (msongy)
 // Date:     10/23/2011
-// Package:  jdbctest
-// File:     SplatterDBTest.java
+// Package:  splatter.db
+// File:     SplatterTest.java
 // Platform: JDK 7
 //           JUnit 4.8.2
 //           NetBeans IDE 7.0.1
@@ -24,12 +24,12 @@ import static org.junit.Assert.*;
  * 
  * @author msongy
  */
-public class SplatterDBTest {
+public class SplatterTest {
    
     /**
      * Constructs the test fixture.
      */
-    public SplatterDBTest() {
+    public SplatterTest() {
     }
 
     /**

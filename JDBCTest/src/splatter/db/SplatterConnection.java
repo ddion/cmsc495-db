@@ -2,7 +2,7 @@
 // Project:  Splatter - Team 1
 // Author:   Michael Songy (msongy)
 // Date:     10/23/2011
-// Package:  jdbctest
+// Package:  splatter.db
 // File:     SplatterDBConnection.java
 // Platform: JDK 7
 //           JUnit 4.8.2
