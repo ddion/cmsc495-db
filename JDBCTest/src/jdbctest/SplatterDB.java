@@ -4,10 +4,12 @@
 // Package:  jdbctest
 // File:     SplatterDB.java
 // Platform: JDK 7
+//           JUnit 4.8.2
 //           NetBeans IDE 7.0.1
 //           PostgreSQL 9.1
 //           Ubuntu 11.10
-// Purpose:  Blah.
+// Purpose:  Provides a SplatterDB singleton class that acts as a factory for
+//           SplatterDBConnection objects.
 package jdbctest;
 
 import java.io.FileInputStream;
@@ -17,11 +19,18 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 /**
- *
+ * A singleton that is a factory for SplatterDBConnection objects.
+ * 
  * @author msongy
  */
 public class SplatterDB {
-    
+   
+    /**
+     * Returns the single <code>SplatterDB</code> instance.
+     * 
+     * @return the <code>SplatterDB</code> instance
+     * @throws Exception if the SplatterDB cannot be created
+     */
     public static SplatterDB getInstance() throws Exception {
         if (instance == null) {
             instance = new SplatterDB();
@@ -30,10 +39,12 @@ public class SplatterDB {
     }
     
     /**
+     * Creates a connection to the Splatter database.
      * 
-     * @param username
-     * @param password
-     * @return 
+     * @param username Username to connect with
+     * @param password Password to connect with
+     * @return a new connection to the Splatter database
+     * @throws Exception if a connection cannot be created
      */
     public SplatterDBConnection connect(String username, String password)
             throws Exception {
@@ -48,7 +59,7 @@ public class SplatterDB {
     }
 
     /**
-     * Constructs a SplatterDB.
+     * Constructs a <code>SplatterDB</code> object.
      * 
      * @throws Exception when there is a problem reading the database properties.
      */
