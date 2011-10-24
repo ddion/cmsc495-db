@@ -1,10 +1,8 @@
-Course:  CMSC495 - Trends and Projects in Computer Science
-Project: Splatter - Team 1
-Author:  Michael Songy
-Date:    10/15/2011
-Platform:
- PostgreSQL 9.1
- Ubuntu 11.10
+Course:   CMSC495 - Trends and Projects in Computer Science
+Project:  Splatter - Team 1
+Author:   Michael Songy
+Date:     10/15/2011
+Platform: See Section 2, "Configuration Notes"
 
 1. Purpose:
 Database for the Splatter application.
@@ -12,33 +10,94 @@ Database for the Splatter application.
 2. Configuration Notes:
 - Ubuntu 11.10
 - PostgreSQL 9.1
+- JDK 7
+- JUnit 4.8.2
+- NetBeans IDE 7.0.1
 
 3. Files included:
-	README - This text file
-	scripts - directory containing database creation scripts
-	scripts/create_entity_tables.postgresql - script for creating the
-		Splatter entity tables
-	scripts/create_functions.postgresql - script for creating the
-		stored function interface to the Splatter database
-	scripts/setup.postgresql - top-level database creation script
+	* README - This text file
+	* scripts/ - directory containing the following database scripts:
+		* create_roles.postgresql - creates the production
+		  database user with privileges on the SPLATTER_API schema
+		* create_splatter_api_auth_functions.postgresql - creates
+		  authentication functions in the SPLATTER_API schema
+		* create_splatter_api_connection_functions.postgresql - creates
+		  connection management functions in the SPLATTER_API schema
+		* create_splatter_api_request_functions.postgresql - creates
+		  connection request management functions in the SPLATTER_API
+		  schema
+		* create_splatter_api_update_functions.postgresql - creates
+		  update management functions in the SPLATTER_API schema
+		* create_splatter_api_user_functions.postgresql - creates user
+		  management functions in the SPLATTER_API schema
+		* create_splatter_audit_tables.postgresql - creates auditing
+		  tables in the SPLATTER schema; currently empty
+		* create_splatter_audit_triggers.postgresql - creates triggers
+		  in the SPLATTER schema; used for updating auditing tables
+		* create_splatter_auth_tables.postgresql - creates table in
+		  the SPLATTER schema for supporting authentication
+		* create_splatter_entity_tables.postgresql - creates entity
+		  tables in the SPLATTER schema
+		* create_splatter_functions.postgresql - creates helper
+		  functions in the SPLATTER schema
+		* create_splatter_test_functions.postgresql - creates test
+		  support functions in the SPLATTER_TEST schema
+		* create_test_roles.postgresql - creates the test database
+		  user with priveleges on the SPLATTER_API and SPLATTER_TEST
+		  schemas
+		* setup.postgresql - main script for creating a production
+		  database
+		* setup_test.postgresql - main script for creating a test
+		  database
+	* JDBCTest/ - directory containing a NetBeans 7.0.1 project for
+	  testing the database via JDBC:
+		* build.xml - Ant build file for the project; generated
+		  and managed by NetBeans
+		* database.properties - property file containing the JDBC
+		  driver class name and connection URL
+		* manifest.mf - template manifest for compiled JAR file;
+		  generated and managed by NetBeans
+		* nbproject/ - directory containing NetBeans project files
+		* postgresql-9.1-901.jdbc4.jar - JAR file for the PostgreSQL
+		  Type 4 JDBC driver
+		* src/jdbctest/ - directory containing the Java source code
+		  for the jdbctest package
+			* JDBCTest.java - the main file for the project,
+			  contains the program entry point
+			* SplatterDBConnection.java - class that encapsulates
+			  a JDBC connection to the Splatter database
+			* SplatterDB.java - singleton class that serves as
+			  a factory for SplatterDBConnection objects
+		* test/jdbctest/ - directory containing the Java source code
+		  for the jdbctest package JUnit tests
+			* SplatterDBTest.java - JUnit fixture for testing the
+			  Splatter database
 
-4. To create the database:
-	1. Create a new Linux user:
+4. To create a database:
+	4.1. Create a new Linux user:
 		sudo adduser splatter
-	2. Create a new PostgreSQL user with database and role creation
-	   rights:
+	4.2. Create a new PostgreSQL user with database and role creation
+	     rights:
 		su postgres
 		createuser splatter
 		exit
-	3. Create a new PostgreSQL database with the new user as owner:
+	4.3. Create a new PostgreSQL database with the new user as owner:
 		su postgres
 		createdb -O splatter splatter
 		exit
-	4. Give the new user access to the scripts directory and contents
-	5. Login as the newly created linux user:
+	4.4. Give the new user access to the scripts directory and contents
+	4.5. Login as the newly created linux user:
 		su splatter
-	6. Change into the scripts directory, and then run psql:
+	4.6. Change into the scripts directory, and then run psql:
 		cd <location of scripts directory>/scripts
 		psql
-	7. At the psql prompt, run the setup script:
-		\i setup.postgresql
+	4.7. At the psql prompt, run the appropriate setup script
+		4.7.1. To create a production database, run:
+			\i setup.postgresql
+		4.7.2. To create a test database, run:
+			\i setup_test.postgresql
+
+5. To run the unit tests:
+	5.1 Open the JDBCTest project in NetBeans 7.0.1
+	5.2 Right click the JDBCTest project in the "Projects" tab, and
+	    select "Test"
