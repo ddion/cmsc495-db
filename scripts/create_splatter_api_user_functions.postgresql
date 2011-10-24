@@ -22,9 +22,9 @@ create function CREATE_USER(
        P_FIRST_IN              VARCHAR,
        P_MI_IN                 CHAR(1),
        P_LAST_IN               VARCHAR,
-       P_NAME_PRIVACY_IN       SPLATTER.ACCESS_LEVEL,
+       P_NAME_PRIVACY_IN       ACCESS_LEVEL,
        P_EMAIL_IN              VARCHAR,
-       P_EMAIL_PRIVACY_IN      SPLATTER.ACCESS_LEVEL)
+       P_EMAIL_PRIVACY_IN      ACCESS_LEVEL)
   returns BIGINT as $$
 declare
   V_USER_ID          BIGINT;
@@ -83,9 +83,9 @@ create function UPDATE_USER(
        P_FIRST_IN              VARCHAR,
        P_MI_IN                 CHAR(1),
        P_LAST_IN               VARCHAR,
-       P_NAME_PRIVACY_IN       SPLATTER.ACCESS_LEVEL,
+       P_NAME_PRIVACY_IN       ACCESS_LEVEL,
        P_EMAIL_IN              VARCHAR,
-       P_EMAIL_PRIVACY_IN      SPLATTER.ACCESS_LEVEL)
+       P_EMAIL_PRIVACY_IN      ACCESS_LEVEL)
   returns VOID as $$
 begin
   -- Authenticate.

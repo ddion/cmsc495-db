@@ -1,6 +1,7 @@
 // Course:   CMSC495 - Trends and Projects in Computer Science
 // Project:  Splatter - Team 1
 // Author:   Michael Songy (msongy)
+// Date:     10/23/2011
 // Package:  jdbctest
 // File:     SplatterDBConnection.java
 // Platform: JDK 7
@@ -10,17 +11,39 @@
 //           Ubuntu 11.10
 // Purpose:  Provides a class that represents a connection to the Splatter
 //           database.
-package jdbctest;
+package splatter.db;
 
 import java.sql.Connection;
+import java.sql.SQLException;
+import splatter.db.api.CreateUser;
 
 /**
- * Class representing a connection to the Splatter database.
+ * A connection to the Splatter database.
  * 
  * @author msongy
  */
-public class SplatterDBConnection
-        implements AutoCloseable{
+public class SplatterConnection
+        implements AutoCloseable {
+    
+    /**
+     * Creates a new <code>CreateUser</code> prepared statement.
+     * 
+     * @return new prepared statement
+     * @throws SQLException if there is an error preparing the statement
+     */
+    public CreateUser getCreateUser()
+            throws SQLException {
+        return new CreateUser(connection);
+    }
+    
+    /**
+     * Returns the underlying JDBC <code>Connection</code> object.
+     * 
+     * @return the wrapped JDBC connection
+     */
+    public Connection getConnection() {
+        return connection;
+    }
     
     /**
      * Closes the database connection, releasing all resources.
@@ -37,7 +60,7 @@ public class SplatterDBConnection
      * @param connection the JDBC connection to wrap
      * @throws IllegalArgumentException if <code>connection</code> is null
      */
-    SplatterDBConnection(Connection connection)
+    SplatterConnection(Connection connection)
             throws IllegalArgumentException {
         if (connection == null) {
             throw new IllegalArgumentException("connection is null");

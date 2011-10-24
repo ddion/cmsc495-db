@@ -10,7 +10,7 @@
  * File:    create_splatter_entity_tables.postgresql
  * Purpose: This file creates the database entity tables.
  */
-set SEARCH_PATH to SPLATTER, PUBLIC;
+set SEARCH_PATH to SPLATTER_API, PUBLIC;
 
 /*
  * Create the ACCESS_LEVEL enumeration.
@@ -19,6 +19,8 @@ create type ACCESS_LEVEL as ENUM(
   'NONE',
   'FOLLOWERS',
   'ALL');
+
+set SEARCH_PATH to SPLATTER, SPLATTER_API, PUBLIC;
 
 /*
  * Create the USERS table.

@@ -1,6 +1,7 @@
 // Course:   CMSC495 - Trends and Projects in Computer Science
 // Project:  Splatter - Team 1
 // Author:   Michael Songy (msongy)
+// Date:     10/23/2011
 // Package:  jdbctest
 // File:     SplatterDBTest.java
 // Platform: JDK 7
@@ -9,7 +10,7 @@
 //           PostgreSQL 9.1
 //           Ubuntu 11.10
 // Purpose:  Provides a fixture for testing the Splatter database.
-package jdbctest;
+package splatter.db;
 
 import org.junit.After;
 import org.junit.AfterClass;

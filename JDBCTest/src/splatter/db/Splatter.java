@@ -1,16 +1,17 @@
 // Course:   CMSC495 - Trends and Projects in Computer Science
 // Project:  Splatter - Team 1
 // Author:   Michael Songy (msongy)
-// Package:  jdbctest
-// File:     SplatterDB.java
+// Date:     10/23/2011
+// Package:  splatter.db
+// File:     Splatter.java
 // Platform: JDK 7
 //           JUnit 4.8.2
 //           NetBeans IDE 7.0.1
 //           PostgreSQL 9.1
 //           Ubuntu 11.10
-// Purpose:  Provides a SplatterDB singleton class that acts as a factory for
-//           SplatterDBConnection objects.
-package jdbctest;
+// Purpose:  Provides a Splatter singleton class that acts as a factory for
+//           SplatterConnection objects.
+package splatter.db;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -23,17 +24,29 @@ import java.util.Properties;
  * 
  * @author msongy
  */
-public class SplatterDB {
-   
+public class Splatter {
+    
+    /**
+     * Enumeration corresponding to the SPLATTER_API.ACCESS_LEVEL enumeration.
+     */
+    public enum AccessLevel {
+        /** No access */
+        NONE,
+        /** Only followers have access */
+        FOLLOWERS,
+        /** Everyone has access */
+        ALL
+    }
+    
     /**
      * Returns the single <code>SplatterDB</code> instance.
      * 
      * @return the <code>SplatterDB</code> instance
      * @throws Exception if the SplatterDB cannot be created
      */
-    public static SplatterDB getInstance() throws Exception {
+    public static Splatter getInstance() throws Exception {
         if (instance == null) {
-            instance = new SplatterDB();
+            instance = new Splatter();
         }
         return instance;
     }
@@ -46,10 +59,10 @@ public class SplatterDB {
      * @return a new connection to the Splatter database
      * @throws Exception if a connection cannot be created
      */
-    public SplatterDBConnection connect(String username, String password)
+    public SplatterConnection connect(String username, String password)
             throws Exception {
         try {
-            return new SplatterDBConnection(
+            return new SplatterConnection(
                     DriverManager.getConnection(url, username, password));
         } catch (SQLException e) {
             throw new Exception(
@@ -63,7 +76,7 @@ public class SplatterDB {
      * 
      * @throws Exception when there is a problem reading the database properties.
      */
-    private SplatterDB() throws Exception {
+    private Splatter() throws Exception {
         // Try to load the database properties.
         Properties props = new Properties();
         try (
@@ -100,5 +113,5 @@ public class SplatterDB {
     private static final String DATABASE_PROPERTIES_FILE = "database.properties";
     
     /** The single instance */
-    private static SplatterDB instance;
+    private static Splatter instance;
 }

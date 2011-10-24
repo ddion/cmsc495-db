@@ -98,6 +98,9 @@ Database for the Splatter application.
 			\i setup_test.postgresql
 
 5. To run the unit tests:
-	5.1 Open the JDBCTest project in NetBeans 7.0.1
-	5.2 Right click the JDBCTest project in the "Projects" tab, and
-	    select "Test"
+	5.1. Edit the connection URL in the database.properties file to
+	     point to your database if you did not call your database
+	     "splatter"	
+	5.2. Open the JDBCTest project in NetBeans 7.0.1
+	5.3. Right click the JDBCTest project in the "Projects" tab, and
+	     select "Test"
