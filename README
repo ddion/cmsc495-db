@@ -1,7 +1,8 @@
 Course:   CMSC495 - Trends and Projects in Computer Science
 Project:  Splatter - Team 1
 Author:   Michael Songy
-Date:     10/15/2011
+Created:  10/15/2011
+Updated:  10/25/2011
 Platform: See Section 2, "Configuration Notes"
 
 1. Purpose:
@@ -69,11 +70,19 @@ Database for the Splatter application.
 			  for calling Splatter database stored functions
 			* Splatter.java - singleton class that loads the JDBC
 			  driver and connects to the Splatter database
-		* src/splatter/db/api/ - directory containing the Java surce
+		* src/splatter/db/api/ - directory containing the Java source
 		  code for the splatter.db.api package
 			* CreateUser.java - class that encapsulates a JDBC
 			  prepared statement for calling the
 			  SPLATTER_API.CREATE_USER stored database function
+			* Login.java - class that encapsulates a JDBC prepared
+			  statement for calling the SPLATTER_API.LOGIN stored
+			  database function
+		* src/splatter/db/test/ - directory containing the Java source
+		  code for the splatter.db.test package
+			* Reset.java - class that encapsulates a JDBC prepared
+			  statement for calling the SPLATTER_TEST.RESET stored
+			  database function
 		* test/splatter/db - directory containing the Java source code
 		  for the jdbctest package JUnit tests
 			* SplatterTest.java - JUnit fixture for testing the

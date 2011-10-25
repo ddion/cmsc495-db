@@ -14,8 +14,8 @@
 package splatter.db;
 
 import java.sql.Connection;
-import splatter.db.api.AccessLevel;
-import splatter.db.api.CreateUser;
+import splatter.db.api.*;
+import splatter.db.test.Reset;
 
 /**
  * The main entry point of the application.
@@ -37,17 +37,24 @@ public class JDBCTest {
                 System.out.println("Yay, we connected!");
                 c.setAutoCommit(false);
                 try (
-                        CreateUser cu = new CreateUser(c)) {
-                    long id = cu.call(
-                            "msongy1", "ween69",
+                        Reset reset = new Reset(c);
+                        CreateUser createUser = new CreateUser(c);
+                        Login login = new Login(c)) {
+                    reset.call();
+                    long id = createUser.call(
+                            "msongy", "waxon!",
                             "Michael", "P", "Songy", AccessLevel.ALL,
                             "msongy@sbcglobal.net", AccessLevel.ALL);
                     System.out.printf("Added user %d%n", id);
-                    id = cu.call(
-                            "wsongy", "lovely",
-                            "Wanda", "B", "Songy", AccessLevel.ALL,
-                            "wsongy@att.net", AccessLevel.ALL);
+                    id = createUser.call(
+                            "wsongy", "waxoff!",
+                            "Wanda", "B", "Songy", AccessLevel.FOLLOWERS,
+                            "wsongy@sbcglobal.net", AccessLevel.FOLLOWERS);
                     System.out.printf("Added user %d%n", id);
+                    Login.Results r = login.call("wsongy", "waxoff!");
+                    System.out.printf(
+                            "Logged in user %d, auth token = %s%n",
+                            r.getId(), r.getAuthToken());
                     c.commit();
                 }               
             }

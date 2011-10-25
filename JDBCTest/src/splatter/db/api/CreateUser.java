@@ -2,8 +2,8 @@
 // Project:  Splatter - Team 1
 // Author:   Michael Songy (msongy)
 // Date:     10/23/2011
-// Package:  splatter.db
-// File:     SplatterDBCallableStatement.java
+// Package:  splatter.db.api
+// File:     CreateUser.java
 // Platform: JDK 7
 //           JUnit 4.8.2
 //           NetBeans IDE 7.0.1
@@ -16,7 +16,6 @@ package splatter.db.api;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
-import splatter.db.Splatter;
 import splatter.db.SplatterCallableStatement;
 
 /**
