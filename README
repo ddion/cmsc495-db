@@ -60,17 +60,26 @@ Database for the Splatter application.
 		* nbproject/ - directory containing NetBeans project files
 		* postgresql-9.1-901.jdbc4.jar - JAR file for the PostgreSQL
 		  Type 4 JDBC driver
-		* src/jdbctest/ - directory containing the Java source code
-		  for the jdbctest package
+		* src/splatter/db/ - directory containing the Java source code
+		  for the splatter.db package
 			* JDBCTest.java - the main file for the project,
 			  contains the program entry point
-			* SplatterDBConnection.java - class that encapsulates
+			* SplatterCallableStatement.java - an abstract class
+			  that encapsulates a JDBC prepared statement
+			  for calling Splatter database stored functions
+			* SplatterConnection.java - class that encapsulates
 			  a JDBC connection to the Splatter database
-			* SplatterDB.java - singleton class that serves as
-			  a factory for SplatterDBConnection objects
-		* test/jdbctest/ - directory containing the Java source code
+			* Splatter.java - singleton class that loads the JDBC
+			  driver and serves as a factory for
+			  SplatterDBConnection objects
+		* src/splatter/db/api/ - directory containing the Java surce
+		  code for the splatter.db.api package
+			* CreateUser.java - class that encapsulates a JDBC
+			  prepared statement for calling the
+			  SPLATTER_API.CREATE_USER stored database function
+		* test/splatter/db - directory containing the Java source code
 		  for the jdbctest package JUnit tests
-			* SplatterDBTest.java - JUnit fixture for testing the
+			* SplatterTest.java - JUnit fixture for testing the
 			  Splatter database
 
 4. To create a database:
