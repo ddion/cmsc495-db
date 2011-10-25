@@ -13,6 +13,8 @@
 //           the application.
 package splatter.db;
 
+import java.sql.Connection;
+import splatter.db.api.AccessLevel;
 import splatter.db.api.CreateUser;
 
 /**
@@ -31,22 +33,22 @@ public class JDBCTest {
         try {
             Splatter db = Splatter.getInstance();
             try (
-                    SplatterConnection c = db.connect("splatter_test", "T3st5pl@t7er!")) {
+                    Connection c = db.connect("splatter_test", "T3st5pl@t7er!")) {
                 System.out.println("Yay, we connected!");
-                c.getConnection().setAutoCommit(false);
+                c.setAutoCommit(false);
                 try (
-                        CreateUser cu = c.getCreateUser()) {
+                        CreateUser cu = new CreateUser(c)) {
                     long id = cu.call(
                             "msongy1", "ween69",
-                            "Michael", "P", "Songy", Splatter.AccessLevel.ALL,
-                            "msongy@sbcglobal.net", Splatter.AccessLevel.ALL);
+                            "Michael", "P", "Songy", AccessLevel.ALL,
+                            "msongy@sbcglobal.net", AccessLevel.ALL);
                     System.out.printf("Added user %d%n", id);
                     id = cu.call(
                             "wsongy", "lovely",
-                            "Wanda", "B", "Songy", Splatter.AccessLevel.ALL,
-                            "wsongy@att.net", Splatter.AccessLevel.ALL);
+                            "Wanda", "B", "Songy", AccessLevel.ALL,
+                            "wsongy@att.net", AccessLevel.ALL);
                     System.out.printf("Added user %d%n", id);
-                    c.getConnection().commit();
+                    c.commit();
                 }               
             }
         } catch (Exception e) {

@@ -67,11 +67,8 @@ Database for the Splatter application.
 			* SplatterCallableStatement.java - an abstract class
 			  that encapsulates a JDBC prepared statement
 			  for calling Splatter database stored functions
-			* SplatterConnection.java - class that encapsulates
-			  a JDBC connection to the Splatter database
 			* Splatter.java - singleton class that loads the JDBC
-			  driver and serves as a factory for
-			  SplatterDBConnection objects
+			  driver and connects to the Splatter database
 		* src/splatter/db/api/ - directory containing the Java surce
 		  code for the splatter.db.api package
 			* CreateUser.java - class that encapsulates a JDBC

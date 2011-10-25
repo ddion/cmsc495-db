@@ -9,34 +9,22 @@
 //           NetBeans IDE 7.0.1
 //           PostgreSQL 9.1
 //           Ubuntu 11.10
-// Purpose:  Provides a Splatter singleton class that acts as a factory for
-//           SplatterConnection objects.
+// Purpose:  Provides a singleton class for connecting to the Splatter database.
 package splatter.db;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
 /**
- * A singleton that is a factory for SplatterDBConnection objects.
+ * A singleton class for connecting to the Splatter database.
  * 
  * @author msongy
  */
 public class Splatter {
-    
-    /**
-     * Enumeration corresponding to the SPLATTER_API.ACCESS_LEVEL enumeration.
-     */
-    public enum AccessLevel {
-        /** No access */
-        NONE,
-        /** Only followers have access */
-        FOLLOWERS,
-        /** Everyone has access */
-        ALL
-    }
     
     /**
      * Returns the single <code>SplatterDB</code> instance.
@@ -59,11 +47,10 @@ public class Splatter {
      * @return a new connection to the Splatter database
      * @throws Exception if a connection cannot be created
      */
-    public SplatterConnection connect(String username, String password)
+    public Connection connect(String username, String password)
             throws Exception {
         try {
-            return new SplatterConnection(
-                    DriverManager.getConnection(url, username, password));
+            return DriverManager.getConnection(url, username, password);
         } catch (SQLException e) {
             throw new Exception(
                 "Failed to establish database connection", e

@@ -60,9 +60,9 @@ public class CreateUser
             String first,
             String mi,
             String last,
-            Splatter.AccessLevel namePrivacy,
+            AccessLevel namePrivacy,
             String email,
-            Splatter.AccessLevel emailPrivacy)
+            AccessLevel emailPrivacy)
             throws SQLException {
         statement.setString(2, username);
         statement.setString(3, password);
