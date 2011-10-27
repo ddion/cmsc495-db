@@ -187,7 +187,8 @@ begin
                EMAIL_PRIVACY,
                FOLLOWER_ID is not null) as EMAIL_PRIVACY,
              FOLLOWER_ID is not null as RECEIVER_FOLLOWING_SENDER,
-             CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
+             CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME,
+             MESSAGE
         from SPLATTER.CONNECTION_REQUESTS
         join SPLATTER.USERS
           on USER_ID = SENDER_ID
@@ -216,7 +217,8 @@ begin
            end as EMAIL,
            EMAIL_PRIVACY,
            RECEIVER_FOLLOWING_SENDER,
-           CREATED_TIME
+           CREATED_TIME,
+           MESSAGE
       from PRIV_USERS
      order by CREATED_TIME desc
      limit P_RESULTS_COUNT_IN
@@ -260,7 +262,8 @@ begin
              FOLLOWER_ID is not null as SENDER_FOLLOWING_RECEIVER,
              SPLATTER.IS_FOLLOWER(
                RECEIVER_ID, P_SENDER_ID_IN) as RECEIVER_FOLLOWING_SENDER,
-             CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME
+             CONNECTION_REQUESTS.CREATED_TIME as CREATED_TIME,
+             MESSAGE
         from SPLATTER.CONNECTION_REQUESTS
         join SPLATTER.USERS
           on P_SENDER_ID_IN = SENDER_ID
@@ -290,7 +293,8 @@ begin
            EMAIL_PRIVACY,
            SENDER_FOLLOWING_RECEIVER,
            RECEIVER_FOLLOWING_SENDER,
-           CREATED_TIME
+           CREATED_TIME,
+           MESSAGE
       from PRIV_USERS
      order by CREATED_TIME desc
      limit P_RESULTS_COUNT_IN
@@ -300,4 +304,3 @@ begin
   return C_RESULTS;
 end;
 $$ language PLPGSQL security definer;
-

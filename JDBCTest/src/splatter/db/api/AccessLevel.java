@@ -25,5 +25,13 @@ public enum AccessLevel {
     /** Only followers have access */
     FOLLOWERS,
     /** Everyone has access */
-    ALL
+    ALL;
+    
+    static AccessLevel fromString(String s) {
+        if (s != null) {
+            return valueOf(s.toUpperCase());
+        } else {
+            return null;
+        }
+    }            
 }

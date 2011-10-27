@@ -52,14 +52,14 @@ $$ language PLPGSQL security definer;
  * Logs a user out of the database.
  */
 create function LOGOUT(
-       P_USERNAME_IN           VARCHAR,
+       P_USER_ID_IN            BIGINT,
        P_AUTH_TOKEN_IN         VARCHAR)
   returns VOID as $$   
 begin
   -- Delete the auth session.
   delete
     from SPLATTER.AUTHORIZED_USERS
-   where USERNAME like P_USERNAME_IN
+   where USER_ID = P_USER_ID_IN
      and SESSION_TOKEN like P_AUTH_TOKEN_IN;
 end;
 $$ language PLPGSQL security definer;

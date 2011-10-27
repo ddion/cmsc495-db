@@ -35,7 +35,7 @@ begin
     return V_IS_FOLLOWER;
   end if;
 end;
-$$ language PLPGSQL security definer;
+$$ language PLPGSQL stable security definer;
 
 /*
  * Checks if one user has access to another's name.
@@ -49,7 +49,7 @@ begin
            P_PRIVACY_IN = 'FOLLOWERS' and
            P_IS_FOLLOWER);
 end;
-$$ language PLPGSQL security definer;
+$$ language PLPGSQL stable security definer;
 
 /*
  * Creates an auth session token.
@@ -83,4 +83,4 @@ begin
     raise exception 'Unauthorized access!';
   end if;
 end;
-$$ language PLPGSQL security definer;
+$$ language PLPGSQL stable security definer;

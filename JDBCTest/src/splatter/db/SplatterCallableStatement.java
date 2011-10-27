@@ -45,6 +45,7 @@ public class SplatterCallableStatement
         }
         this.statement = statement;
     }
-        
+    
+    /** The JDBC callable statement */
     protected final CallableStatement statement;
 }

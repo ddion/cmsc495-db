@@ -14,6 +14,9 @@
 package splatter.db;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import splatter.db.api.*;
 import splatter.db.test.Reset;
 
@@ -39,7 +42,9 @@ public class JDBCTest {
                 try (
                         Reset reset = new Reset(c);
                         CreateUser createUser = new CreateUser(c);
-                        Login login = new Login(c)) {
+                        Login login = new Login(c);
+                        RetrieveUser retrieveUser = new RetrieveUser(c);
+                        Logout logout = new Logout(c)) {
                     reset.call();
                     long id = createUser.call(
                             "msongy", "waxon!",
@@ -55,6 +60,11 @@ public class JDBCTest {
                     System.out.printf(
                             "Logged in user %d, auth token = %s%n",
                             r.getId(), r.getAuthToken());
+                    processRetrieveUser(
+                            retrieveUser,
+                            retrieveUser.call(r.getId(), r.getAuthToken()));
+                    logout.call(r.getId(), r.getAuthToken());
+                    System.out.printf("Logged out user %d%n", r.getId());
                     c.commit();
                 }               
             }
@@ -63,5 +73,44 @@ public class JDBCTest {
         }
     }
     
-    
+    static void processRetrieveUser(RetrieveUser statement, ResultSet resultSet)
+            throws SQLException {
+        RetrieveUser.RowVisitor visitor = new RetrieveUser.RowVisitor() {
+            public void visit(
+                long id,
+                Timestamp createdTime,
+                Timestamp updatedTime,
+                String username,
+                String password,
+                String first,
+                String mi,
+                String last,
+                AccessLevel namePrivacy,
+                String email,
+                AccessLevel emailPrivacy) {
+                System.out.printf(
+                        "Retrieved user:%n" +
+                        "  id = %d%n" +
+                        "  createdTime = %s%n" +
+                        "  updatedTime = %s%n" +
+                        "  username = %s%n" +
+                        "  password = %s%n" +
+                        "  first = %s%n" +
+                        "  mi = %s%n" +
+                        "  last = %s%n" +
+                        "  namePrivacy = %s%n" +
+                        "  email = %s%n" +
+                        "  emailPrivacy = %s%n",
+                        id,
+                        createdTime.toString(), updatedTime.toString(),
+                        username, password,
+                        first, mi, last, namePrivacy.name(),
+                        email, emailPrivacy.name());
+            }
+        };
+        
+        while (resultSet.next()) {
+            statement.visitRow(resultSet, visitor);
+        }
+    }
 }

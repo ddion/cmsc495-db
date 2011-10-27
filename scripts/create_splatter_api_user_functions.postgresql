@@ -50,7 +50,7 @@ $$ language PLPGSQL security definer;
 /*
  * Retrieves a user record from the database.
  */
-create function RETREIVE_USER(
+create function RETRIEVE_USER(
        P_USER_ID_IN            BIGINT,
        P_AUTH_TOKEN_IN         VARCHAR)
   returns REFCURSOR as $$
