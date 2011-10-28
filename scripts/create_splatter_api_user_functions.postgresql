@@ -217,11 +217,13 @@ begin
              FIRST, MI, LAST,
              SPLATTER.HAS_ACCESS(
                NAME_PRIVACY,
-               FOLLOWER_ID is not null) as NAME_PRIVACY,
+               FOLLOWER_ID is not null) or
+             USER_ID = P_VIEWER_ID_IN as NAME_PRIVACY,
              EMAIL,
              SPLATTER.HAS_ACCESS(
                EMAIL_PRIVACY,
-               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) or
+             USER_ID = P_VIEWER_ID_IN as EMAIL_PRIVACY,
              FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
              SPLATTER.IS_FOLLOWER(
                USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
@@ -229,8 +231,9 @@ begin
         left outer join SPLATTER.CONNECTIONS
           on P_VIEWER_ID_IN = FOLLOWER_ID
          and USER_ID = FOLLOWED_ID
-       where NAME_PRIVACY
-         and (P_FIRST_IN is not null or
+             -- Some part of the name must be valid and all valid parts
+             -- must match the search parameters
+       where (P_FIRST_IN is not null or
               P_MI_IN is not null or
               P_LAST_IN is not null)
          and (P_FIRST_IN is null or P_FIRST_IN ilike FIRST)
@@ -288,11 +291,13 @@ begin
              FIRST, MI, LAST,
              SPLATTER.HAS_ACCESS(
                NAME_PRIVACY,
-               FOLLOWER_ID is not null) as NAME_PRIVACY,
+               FOLLOWER_ID is not null) or
+             USER_ID = P_VIEWER_ID_IN as NAME_PRIVACY,
              EMAIL,
              SPLATTER.HAS_ACCESS(
                EMAIL_PRIVACY,
-               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) or
+             USER_ID = P_VIEWER_ID_IN as EMAIL_PRIVACY,
              FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
              SPLATTER.IS_FOLLOWER(
                USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER
@@ -353,11 +358,13 @@ begin
              FIRST, MI, LAST,
              SPLATTER.HAS_ACCESS(
                NAME_PRIVACY,
-               FOLLOWER_ID is not null) as NAME_PRIVACY,
+               FOLLOWER_ID is not null) or
+             USER_ID = P_VIEWER_ID_IN as NAME_PRIVACY,
              EMAIL,
              SPLATTER.HAS_ACCESS(
                EMAIL_PRIVACY,
-               FOLLOWER_ID is not null) as EMAIL_PRIVACY,
+               FOLLOWER_ID is not null) or
+             USER_ID = P_VIEWER_ID_IN as EMAIL_PRIVACY,
              FOLLOWER_ID is not null as VIEWER_FOLLOWING_USER,
              SPLATTER.IS_FOLLOWER(
                USER_ID, P_VIEWER_ID_IN) as USER_FOLLOWING_VIEWER

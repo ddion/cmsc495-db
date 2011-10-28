@@ -47,7 +47,10 @@ public class JDBCTest {
                         RetrieveUser retrieveUser = new RetrieveUser(c);
                         UpdateUser updateUser = new UpdateUser(c);
                         Logout logout = new Logout(c);
-                        ViewUser viewUser = new ViewUser(c);) {
+                        ViewUser viewUser = new ViewUser(c);
+                        FindUserByName findUserByName = new FindUserByName(c);
+                        FindUserByUsername findUserByUsername = new FindUserByUsername(c);
+                        FindUserByEmail findUserByEmail = new FindUserByEmail(c)) {
                     reset.call();
                     long id1 = createUser.call(
                             "msongy", "waxon!",
@@ -80,9 +83,12 @@ public class JDBCTest {
                             "Wanda", "B", "Songy", AccessLevel.FOLLOWERS,
                             "wsongy@chimpokomon.net", AccessLevel.FOLLOWERS);
                     retrieveUser(retrieveUser, r2.getId(), r2.getAuthToken());
-                    System.out.printf("Logged out user %d%n", r2.getId());
                     viewUser(viewUser, r2.getId(), r2.getAuthToken(), id1);
+                    findUserByName(findUserByName, r2.getId(), r2.getAuthToken(), null, null, "Songy");
+                    findUserByUsername(findUserByUsername, r2.getId(), r2.getAuthToken(), "msongy");
+                    findUserByEmail(findUserByEmail, r2.getId(), r2.getAuthToken(), "msongy@sbcglobal.net");
                     logout.call(r2.getId(), r2.getAuthToken());
+                    System.out.printf("Logged out user %d%n", r2.getId());
                     c.commit();                    
                 }               
             }
@@ -142,14 +148,75 @@ public class JDBCTest {
             String authToken,
             long userId)
             throws SQLException {
-        ViewUser.RowVisitor visitor = new ViewUser.RowVisitor() {
+        System.out.printf("User %d viewing user %d%n", viewerId, userId);
+        processFindUserResults(
+                statement,
+                statement.call(viewerId, authToken, userId));
+    }
+    
+    static void findUserByName(
+            FindUserByName statement,
+            long viewerId,
+            String authToken,
+            String first,
+            String mi,
+            String last)
+            throws SQLException {
+        System.out.printf(
+                "User %d searching for user by name:%n" +
+                "  first = %s%n" +
+                "  mi = %s%n" +
+                "  last = %s%n",
+                viewerId,
+                first != null ? first : "<null>",
+                mi != null ? mi : "<null>",
+                last != null ? last : "<null>");
+        processFindUserResults(
+                statement,
+                statement.call(viewerId, authToken, first, mi, last));
+    }
+    
+    static void findUserByUsername(
+            FindUserByUsername statement,
+            long viewerId,
+            String authToken,
+            String username)
+            throws SQLException {
+        System.out.printf(
+                "User %d searching for user by username: %s%n",
+                viewerId, username);
+        processFindUserResults(
+                statement,
+                statement.call(viewerId, authToken, username));
+    }
+    
+    static void findUserByEmail(
+            FindUserByEmail statement,
+            long viewerId,
+            String authToken,
+            String email)
+            throws SQLException {
+        System.out.printf(
+                "User %d searching for user by email: %s%n",
+                viewerId, email);
+        processFindUserResults(
+                statement,
+                statement.call(viewerId, authToken, email));
+    }
+    
+    static void processFindUserResults(
+            FindUser statement,
+            ResultSet resultSet)
+            throws SQLException {
+        
+        FindUser.RowVisitor visitor = new FindUser.RowVisitor() {
             public void visit(
                 long id, String username,
                 String first, String mi, String last, boolean namePrivacy,
                 String email, boolean emailPrivacy,
                 boolean viewerFollowingUser, boolean userFollowingViewer) {
                 System.out.printf(
-                        "Retrieved user:%n" +
+                        "Found user:%n" +
                         "  id = %d%n" +
                         "  username = %s%n" +
                         "  first = %s%n" +
@@ -167,8 +234,6 @@ public class JDBCTest {
                         viewerFollowingUser, userFollowingViewer);
             }
         };
-
-        ResultSet resultSet = statement.call(viewerId, authToken, userId);
         while (resultSet.next()) {
             statement.visitRow(resultSet, visitor);
         }
