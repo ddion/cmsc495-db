@@ -42,30 +42,48 @@ public class JDBCTest {
                 try (
                         Reset reset = new Reset(c);
                         CreateUser createUser = new CreateUser(c);
+                        DeleteUser deleteUser = new DeleteUser(c);
                         Login login = new Login(c);
                         RetrieveUser retrieveUser = new RetrieveUser(c);
-                        Logout logout = new Logout(c)) {
+                        UpdateUser updateUser = new UpdateUser(c);
+                        Logout logout = new Logout(c);
+                        ViewUser viewUser = new ViewUser(c);) {
                     reset.call();
-                    long id = createUser.call(
+                    long id1 = createUser.call(
                             "msongy", "waxon!",
                             "Michael", "P", "Songy", AccessLevel.ALL,
                             "msongy@sbcglobal.net", AccessLevel.ALL);
-                    System.out.printf("Added user %d%n", id);
-                    id = createUser.call(
+                    System.out.printf("Added user %d%n", id1);
+                    Login.Results r1 = login.call("msongy", "waxon!");
+                    System.out.printf(
+                            "Logged in user %d, auth token = %s%n",
+                            r1.getId(), r1.getAuthToken());
+                    deleteUser.call(r1.getId(), r1.getAuthToken());
+                    System.out.printf("Deleted user %d%n", r1.getId());
+                    id1 = createUser.call(
+                            "msongy", "waxon!",
+                            "Michael", "P", "Songy", AccessLevel.ALL,
+                            "msongy@sbcglobal.net", AccessLevel.ALL);
+                    long id2 = createUser.call(
                             "wsongy", "waxoff!",
                             "Wanda", "B", "Songy", AccessLevel.FOLLOWERS,
                             "wsongy@sbcglobal.net", AccessLevel.FOLLOWERS);
-                    System.out.printf("Added user %d%n", id);
-                    Login.Results r = login.call("wsongy", "waxoff!");
+                    System.out.printf("Added user %d%n", id2);
+                    Login.Results r2 = login.call("wsongy", "waxoff!");
                     System.out.printf(
                             "Logged in user %d, auth token = %s%n",
-                            r.getId(), r.getAuthToken());
-                    processRetrieveUser(
-                            retrieveUser,
-                            retrieveUser.call(r.getId(), r.getAuthToken()));
-                    logout.call(r.getId(), r.getAuthToken());
-                    System.out.printf("Logged out user %d%n", r.getId());
-                    c.commit();
+                            r2.getId(), r2.getAuthToken());
+                    retrieveUser(retrieveUser, r2.getId(), r2.getAuthToken());
+                    updateUser.call(
+                            r2.getId(), r2.getAuthToken(),
+                            "wsongy", "waxoff!",
+                            "Wanda", "B", "Songy", AccessLevel.FOLLOWERS,
+                            "wsongy@chimpokomon.net", AccessLevel.FOLLOWERS);
+                    retrieveUser(retrieveUser, r2.getId(), r2.getAuthToken());
+                    System.out.printf("Logged out user %d%n", r2.getId());
+                    viewUser(viewUser, r2.getId(), r2.getAuthToken(), id1);
+                    logout.call(r2.getId(), r2.getAuthToken());
+                    c.commit();                    
                 }               
             }
         } catch (Exception e) {
@@ -73,7 +91,10 @@ public class JDBCTest {
         }
     }
     
-    static void processRetrieveUser(RetrieveUser statement, ResultSet resultSet)
+    static void retrieveUser(
+            RetrieveUser statement,
+            long id,
+            String authToken)
             throws SQLException {
         RetrieveUser.RowVisitor visitor = new RetrieveUser.RowVisitor() {
             public void visit(
@@ -108,7 +129,46 @@ public class JDBCTest {
                         email, emailPrivacy.name());
             }
         };
-        
+
+        ResultSet resultSet = statement.call(id, authToken);
+        while (resultSet.next()) {
+            statement.visitRow(resultSet, visitor);
+        }
+    }
+    
+    static void viewUser(
+            ViewUser statement,
+            long viewerId,
+            String authToken,
+            long userId)
+            throws SQLException {
+        ViewUser.RowVisitor visitor = new ViewUser.RowVisitor() {
+            public void visit(
+                long id, String username,
+                String first, String mi, String last, boolean namePrivacy,
+                String email, boolean emailPrivacy,
+                boolean viewerFollowingUser, boolean userFollowingViewer) {
+                System.out.printf(
+                        "Retrieved user:%n" +
+                        "  id = %d%n" +
+                        "  username = %s%n" +
+                        "  first = %s%n" +
+                        "  mi = %s%n" +
+                        "  last = %s%n" +
+                        "  namePrivacy = %b%n" +
+                        "  email = %s%n" +
+                        "  emailPrivacy = %b%n" +
+                        "  viewerFollowingUser = %b%n" +
+                        "  userFollowingViewer = %b%n",
+                        id,
+                        username,
+                        first, mi, last, namePrivacy,
+                        email, emailPrivacy,
+                        viewerFollowingUser, userFollowingViewer);
+            }
+        };
+
+        ResultSet resultSet = statement.call(viewerId, authToken, userId);
         while (resultSet.next()) {
             statement.visitRow(resultSet, visitor);
         }

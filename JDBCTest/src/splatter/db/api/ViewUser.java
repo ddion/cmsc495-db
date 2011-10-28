@@ -3,29 +3,28 @@
 // Author:   Michael Songy (msongy)
 // Date:     10/27/2011
 // Package:  splatter.db.api
-// File:     RetrieveUser.java
+// File:     ViewUser.java
 // Platform: JDK 7
 //           JUnit 4.8.2
 //           NetBeans IDE 7.0.1
 //           PostgreSQL 9.1
 //           Ubuntu 11.10
-// Purpose:  Provides a class that represents a SPLATTER_API.RETRIEVE_USER
+// Purpose:  Provides a class that represents a SPLATTER_API.VIEW_USER
 //           stored function call for the Splatter database.
 package splatter.db.api;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import splatter.db.SplatterCallableStatement;
 
 /**
- * A prepared call to the SPLATTER_API.RETRIEVE_USER function.
+ * A prepared call to the SPLATTER_API.VIEW_USER function.
  * 
  * @author msongy
  */
-public class RetrieveUser
+public class ViewUser
         extends SplatterCallableStatement {
     
     /**
@@ -40,51 +39,57 @@ public class RetrieveUser
          * Called for a visited row.
          * 
          * @param id user id
-         * @param createdTime time the user record was created
-         * @param updatedTime time the user record was last updated
          * @param username the user's username
          * @param password the user's password
          * @param first the user's first name
          * @param mi the user's middle initial
          * @param last the user's last name
-         * @param namePrivacy the user's name privacy setting
+         * @param namePrivacy true if the user's name is returned;
+         *        false otherwise
          * @param email the user's email
-         * @param emailPrivacy  the user's email privacy setting
+         * @param emailPrivacy true if the user's email is returned;
+         *        false otherwise
+         * @param viewerFollowingUser true if the viewer is following the user;
+         *        false otherwise
+         * @param userFollowingViewer true if the user is following the viewer;
+         *        false otherwise
          */
         void visit(
-                long id,
-                Timestamp createdTime, Timestamp updatedTime,
-                String username, String password,
-                String first, String mi, String last, AccessLevel namePrivacy,
-                String email, AccessLevel emailPrivacy);
+                long id, String username,
+                String first, String mi, String last, boolean namePrivacy,
+                String email, boolean emailPrivacy,
+                boolean viewerFollowingUser, boolean userFollowingViewer);
     }
     
     /**
-     * Constructs a <code>RetrieveUser</code> statement.
+     * Constructs a <code>ViewUser</code> statement.
      * 
      * @param connection JDBC connection
      * @throws SQLException if there is an error preparing the statement
      */
-    public RetrieveUser(Connection connection)
+    public ViewUser(Connection connection)
             throws SQLException {
         super(connection.prepareCall(
-                "{ ? = call SPLATTER_API.RETRIEVE_USER(?, ?) }"));
+                "{ ? = call SPLATTER_API.VIEW_USER(?, ?, ?) }"));
         statement.registerOutParameter(1, Types.OTHER);
     }
     
     /**
-     * Calls the SPLATTER_API.RETRIEVE_USER function.
+     * Calls the SPLATTER_API.VIEW_USER function.
      * 
-     * @param userId id of the user to log out
-     * @param authToken auth session token for <code>userId</code>
+     * @param viewerId id of the searching user
+     * @param authToken auth session token for <code>viewerId</code>
+     * @param userId id of the user to view
      * @throws SQLException if there is a database error
      */
     public ResultSet call(
-            long userId,
-            String authToken)
+            long viewerId,
+            String authToken,
+            long userId)
             throws SQLException {
-        statement.setLong(2, userId);
+        statement.setLong(2, viewerId);
         statement.setString(3, authToken);
+        statement.setLong(4, userId);
         statement.execute();
         return (ResultSet)statement.getObject(1);
     }
@@ -103,17 +108,15 @@ public class RetrieveUser
             throws SQLException {
         visitor.visit(
             resultSet.getLong(1),      // id
-            resultSet.getTimestamp(2), // createdTime
-            resultSet.getTimestamp(3), // updatedTime
-            resultSet.getString(4),    // username
-            resultSet.getString(5),    // password
-            resultSet.getString(6),    // first
-            resultSet.getString(7),    // mi
-            resultSet.getString(8),    // last
-            AccessLevel.fromString(    // namePrivacy
-                resultSet.getString(9)),
-            resultSet.getString(10),   // email
-            AccessLevel.fromString(    // emailPrivacy
-                resultSet.getString(11)));
+            resultSet.getString(2),    // username
+            resultSet.getString(3),    // first
+            resultSet.getString(4),    // mi
+            resultSet.getString(5),    // last
+            resultSet.getBoolean(6),   // namePrivacy
+            resultSet.getString(7),    // email
+            resultSet.getBoolean(8),   // emailPrivacy
+            resultSet.getBoolean(9),   // viewerFollowingUser
+            resultSet.getBoolean(10)); // userFollowingViewer
     }
 }
+
