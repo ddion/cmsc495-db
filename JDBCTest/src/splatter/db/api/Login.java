@@ -13,6 +13,7 @@
 //           stored function call for the Splatter database.
 package splatter.db.api;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -76,8 +77,9 @@ public class Login
             throws SQLException {
         super(connection.prepareCall(
                 "{ call SPLATTER_API.LOGIN(?, ?, ?, ?) }"));
-        statement.registerOutParameter(1, Types.BIGINT);
-        statement.registerOutParameter(2, Types.VARCHAR);
+        CallableStatement callableStatement = ((CallableStatement)statement);
+        callableStatement.registerOutParameter(1, Types.BIGINT);
+        callableStatement.registerOutParameter(2, Types.VARCHAR);
     }
     
     /**
@@ -95,8 +97,9 @@ public class Login
         statement.setString(3, username);
         statement.setString(4, password);
         statement.executeUpdate();
-        long id = statement.getLong(1);
-        String authToken = statement.getString(2);
+        CallableStatement callableStatement = (CallableStatement)statement;
+        long id = callableStatement.getLong(1);
+        String authToken = callableStatement.getString(2);
         return new Results(id, authToken);
     }
 }

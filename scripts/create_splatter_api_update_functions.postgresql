@@ -75,18 +75,28 @@ $$ language PLPGSQL security definer;
  * Retrieves updates for the specified owning user.
  * Results are ordered reverse-chronologically.
  */
-create function RETREIVE_UPDATES(
+create function RETRIEVE_UPDATES(
        P_OWNER_ID_IN           BIGINT,
        P_AUTH_TOKEN_IN         VARCHAR,
        P_RESULTS_OFFSET_IN     INT,
        P_RESULTS_COUNT_IN      INT)
-  returns REFCURSOR as $$
+  returns SETOF REFCURSOR as $$
 declare
+  C_COUNT            REFCURSOR;
   C_RESULTS          REFCURSOR;
 begin
   -- Authenticate.
   perform SPLATTER.AUTHENTICATE(
     P_OWNER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Count the number of updates.
+  open C_COUNT for
+    select COUNT(*)
+      from SPLATTER.UPDATES
+     where USER_ID = P_OWNER_ID_IN;
+
+  -- Return the count.
+  return next C_COUNT;
 
   -- Retreive the updates.
   open C_RESULTS for
@@ -98,7 +108,7 @@ begin
     offset P_RESULTS_OFFSET_IN;
 
   -- Return the results.
-  return C_RESULTS;
+  return next C_RESULTS;
 end;
 $$ language PLPGSQL security definer;
 
@@ -176,34 +186,49 @@ create function VIEW_FOLLOWED_UPDATES(
        P_AUTH_TOKEN_IN         VARCHAR,
        P_RESULTS_OFFSET_IN     INT,
        P_RESULTS_COUNT_IN      INT)
-  returns REFCURSOR as $$
+  returns SETOF REFCURSOR as $$
 declare
+  C_COUNT            REFCURSOR;
   C_RESULTS          REFCURSOR;
 begin
   -- Authenticate.
   perform SPLATTER.AUTHENTICATE(
     P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
 
+  -- Count the number of updates.
+  open C_COUNT for
+    select COUNT(*)
+      from SPLATTER.UPDATES
+      join SPLATTER.CONNECTIONS
+        on USER_ID = FOLLOWED_ID
+      join SPLATTER.USERS
+     using (USER_ID)
+     where POSTED
+       and FOLLOWER_ID = P_VIEWER_ID_IN;
+
+  -- Return the count.
+  return next C_COUNT;
+
   -- Retrieve the updates.
   open C_RESULTS for
     select UPDATE_ID,
-           UPDATES.USER_ID as USER_ID,
+           SPLATTER.UPDATES.USER_ID as USER_ID,
            USERNAME,
-           UPDATED_TIME as POSTED_TIME,
+           SPLATTER.UPDATES.UPDATED_TIME as POSTED_TIME,
            MESSAGE
       from SPLATTER.UPDATES
       join SPLATTER.CONNECTIONS
-      join SPLATTER.USERS
         on USER_ID = FOLLOWED_ID
+      join SPLATTER.USERS
      using (USER_ID)
      where POSTED
        and FOLLOWER_ID = P_VIEWER_ID_IN
-     order by UPDATED_TIME desc
+     order by SPLATTER.UPDATES.UPDATED_TIME desc
      limit P_RESULTS_COUNT_IN
     offset P_RESULTS_OFFSET_IN;
 
   -- Return the results.
-  return C_RESULTS;
+  return next C_RESULTS;
 end;
 $$ language PLPGSQL security definer;
 
@@ -219,34 +244,50 @@ create function VIEW_USER_UPDATES(
        P_OWNER_ID_IN           BIGINT,
        P_RESULTS_OFFSET_IN     INT,
        P_RESULTS_COUNT_IN      INT)
-  returns REFCURSOR as $$
+  returns SETOF REFCURSOR as $$
 declare
+  C_COUNT            REFCURSOR;
   C_RESULTS          REFCURSOR;
 begin
   -- Authenticate.
   perform SPLATTER.AUTHENTICATE(
     P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
 
+  -- Count the number of updates.
+  open C_COUNT for
+    select COUNT(*)
+      from SPLATTER.UPDATES
+      join SPLATTER.CONNECTIONS
+        on USER_ID = FOLLOWED_ID
+      join SPLATTER.USERS
+     using (USER_ID)
+     where POSTED
+       and USER_ID = P_OWNER_ID_IN
+       and FOLLOWER_ID = P_VIEWER_ID_IN;
+
+  -- Return the count.
+  return next C_COUNT;
+
   -- Retrieve the updates.
   open C_RESULTS for
     select UPDATE_ID,
-           UPDATES.USER_ID as USER_ID,
+           SPLATTER.UPDATES.USER_ID as USER_ID,
            USERNAME,
-           UPDATED_TIME as POSTED_TIME,
+           SPLATTER.UPDATES.UPDATED_TIME as POSTED_TIME,
            MESSAGE
       from SPLATTER.UPDATES
       join SPLATTER.CONNECTIONS
-      join SPLATTER.USERS
         on USER_ID = FOLLOWED_ID
+      join SPLATTER.USERS
      using (USER_ID)
      where POSTED
        and USER_ID = P_OWNER_ID_IN
        and FOLLOWER_ID = P_VIEWER_ID_IN
-     order by UPDATED_TIME desc
+     order by SPLATTER.UPDATES.UPDATED_TIME desc
      limit P_RESULTS_COUNT_IN
     offset P_RESULTS_OFFSET_IN;
 
   -- Return the results.
-  return C_RESULTS;
+  return next C_RESULTS;
 end;
 $$ language PLPGSQL security definer;

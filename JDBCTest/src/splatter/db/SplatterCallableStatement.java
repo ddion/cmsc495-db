@@ -14,6 +14,7 @@
 package splatter.db;
 
 import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
 
 /**
  * A callable statement for the Splatter database.
@@ -35,10 +36,10 @@ public class SplatterCallableStatement
     /**
      * Constructs a prepared call.
      * 
-     * @param call the JDBC prepared call to wrap
+     * @param call the JDBC prepared statement to wrap
      * @throws IllegalArgumentException if <code>connection</code> is null
      */
-    protected SplatterCallableStatement(CallableStatement statement)
+    protected SplatterCallableStatement(PreparedStatement statement)
             throws IllegalArgumentException {
         if (statement == null) {
             throw new IllegalArgumentException("statement is null");
@@ -47,5 +48,5 @@ public class SplatterCallableStatement
     }
     
     /** The JDBC callable statement */
-    protected final CallableStatement statement;
+    protected final PreparedStatement statement;
 }

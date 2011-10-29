@@ -3,7 +3,7 @@
 // Author:   Michael Songy (msongy)
 // Date:     10/27/2011
 // Package:  splatter.db.api
-// File:     FindUser.java
+// File:     AbstractFindUser.java
 // Platform: JDK 7
 //           JUnit 4.8.2
 //           NetBeans IDE 7.0.1
@@ -13,7 +13,7 @@
 //           the Splatter database.
 package splatter.db.api;
 
-import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import splatter.db.SplatterCallableStatement;
@@ -23,14 +23,12 @@ import splatter.db.SplatterCallableStatement;
  * 
  * @author msongy
  */
-public abstract class FindUser
+public abstract class AbstractFindUser
         extends SplatterCallableStatement {
     
     /**
      * Interface for visiting a row of the result set returned by
-     * <code>call</code>.
-     * 
-     * @see #call(long, String)
+     * a find user function.
      */
     public interface RowVisitor
     {
@@ -60,19 +58,18 @@ public abstract class FindUser
     }
     
     /**
-     * Constructs a <code>FindUser</code> statement.
+     * Constructs a <code>AbstractFindUser</code> statement.
      * 
-     * @param connection JDBC connection
-     * @throws SQLException if there is an error preparing the statement
+     * @param statement JDBC prepared statement
+     * @throws SQLException if there is a database error
      */
-    public FindUser(CallableStatement statement)
+    public AbstractFindUser(PreparedStatement statement)
             throws SQLException {
         super(statement);
     }
     
     /**
      * Visits the current row of the supplied result set.
-     * <code>call</code>
      * 
      * @param resultSet the result set whose current row will be visited
      * @param visitor the visitor callback

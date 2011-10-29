@@ -13,6 +13,7 @@
 //           stored function call for the Splatter database.
 package splatter.db.api;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,7 +25,7 @@ import java.sql.Types;
  * @author msongy
  */
 public class FindUserByName
-        extends FindUser {
+        extends AbstractFindUser {
 
     /**
      * Constructs a <code>FindUserByName</code> statement.
@@ -36,7 +37,7 @@ public class FindUserByName
             throws SQLException {
         super(connection.prepareCall(
                 "{ ? = call SPLATTER_API.FIND_USER_BY_NAME(?, ?, ?, ?, ?) }"));
-        statement.registerOutParameter(1, Types.OTHER);
+        ((CallableStatement)statement).registerOutParameter(1, Types.OTHER);
     }
     
     /**
@@ -63,6 +64,6 @@ public class FindUserByName
         statement.setString(5, mi);
         statement.setString(6, last);
         statement.execute();
-        return (ResultSet)statement.getObject(1);
+        return (ResultSet)((CallableStatement)statement).getObject(1);
     }
 }
