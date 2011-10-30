@@ -40,7 +40,7 @@ public class RetrieveUser
         /**
          * Called for a visited row.
          * 
-         * @param id user id
+         * @param userId user userId
          * @param createdTime time the user record was created
          * @param updatedTime time the user record was last updated
          * @param username the user's username
@@ -53,7 +53,7 @@ public class RetrieveUser
          * @param emailPrivacy  the user's email privacy setting
          */
         void visit(
-                long id,
+                long userId,
                 Timestamp createdTime, Timestamp updatedTime,
                 String username, String password,
                 String first, String mi, String last, AccessLevel namePrivacy,
@@ -103,7 +103,7 @@ public class RetrieveUser
     public void visitRow(ResultSet resultSet, RowVisitor visitor)
             throws SQLException {
         visitor.visit(
-            resultSet.getLong(1),      // id
+            resultSet.getLong(1),      // userId
             resultSet.getTimestamp(2), // createdTime
             resultSet.getTimestamp(3), // updatedTime
             resultSet.getString(4),    // username

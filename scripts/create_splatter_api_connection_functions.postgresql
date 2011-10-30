@@ -14,6 +14,28 @@
 set SEARCH_PATH to SPLATTER_API, PUBLIC;
 
 /*
+ * Deletes a connection record from the database.
+ */
+create function DELETE_CONNECTION(
+       P_USER_ID_IN            BIGINT,
+       P_AUTH_TOKEN_IN         VARCHAR,
+       P_CONNECTION_ID_IN      BIGINT)
+  returns VOID as $$
+begin
+  -- Authenticate.
+  perform SPLATTER.AUTHENTICATE(
+    P_USER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Delete the connection.
+  delete
+    from SPLATTER.CONNECTIONS
+   where CONNECTION_ID = P_CONNECTION_ID_IN
+     and FOLLOWER_ID = P_USER_ID_IN or
+         FOLLOWED_ID = P_USER_ID_IN;
+end;
+$$ language PLPGSQL security definer;
+
+/*
  * Retrieves records of users who are being followed by
  * the specified user.
  * Results are ordered lexicographically by username.
@@ -23,18 +45,31 @@ create function VIEW_FOLLOWED_USERS(
        P_AUTH_TOKEN_IN         VARCHAR,
        P_RESULTS_OFFSET_IN     INT,
        P_RESULTS_COUNT_IN      INT)
-  returns REFCURSOR as $$
+  returns SETOF REFCURSOR as $$
 declare
+  C_COUNT            REFCURSOR;
   C_RESULTS          REFCURSOR;
 begin
   -- Authenticate.
   perform SPLATTER.AUTHENTICATE(
     P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
 
+  -- Count the number of followed users.
+  open C_COUNT for
+    select COUNT(*)
+      from SPLATTER.CONNECTIONS
+      join SPLATTER.USERS
+        on P_VIEWER_ID_IN = FOLLOWER_ID
+       and USER_ID = FOLLOWED_ID;
+
+  -- Return the count.
+  return next C_COUNT;
+
   -- Retrieve followed users.
   open C_RESULTS for
     with PRIV_USERS as (
-      select USER_ID, USERNAME,
+      select C1.CONNECTION_ID as CONNECTION_ID,
+             USER_ID, USERNAME,
              FIRST, MI, LAST,
              SPLATTER.HAS_ACCESS(
                NAME_PRIVACY,
@@ -52,7 +87,8 @@ begin
         left outer join SPLATTER.CONNECTIONS as C2
           on USER_ID = C2.FOLLOWER_ID
          and P_VIEWER_ID_IN = C2.FOLLOWED_ID)
-    select USER_ID, USERNAME,
+    select CONNECTION_ID,
+           USER_ID, USERNAME,
            case when NAME_PRIVACY
                 then FIRST
                 else null
@@ -79,7 +115,7 @@ begin
     offset P_RESULTS_OFFSET_IN;
 
   -- Return the results.
-  return C_RESULTS;
+  return next C_RESULTS;
 end;
 $$ language PLPGSQL security definer;
 
@@ -92,18 +128,31 @@ create function VIEW_FOLLOWERS(
        P_AUTH_TOKEN_IN         VARCHAR,
        P_RESULTS_OFFSET_IN     INT,
        P_RESULTS_COUNT_IN      INT)
-  returns REFCURSOR as $$
+  returns SETOF REFCURSOR as $$
 declare
+  C_COUNT            REFCURSOR;
   C_RESULTS          REFCURSOR;
 begin
   -- Authenticate.
   perform SPLATTER.AUTHENTICATE(
     P_VIEWER_ID_IN, P_AUTH_TOKEN_IN);
 
+  -- Count the number of requests.
+  open C_COUNT for
+    select COUNT(*)
+      from SPLATTER.CONNECTIONS
+      join SPLATTER.USERS
+        on USER_ID = FOLLOWER_ID
+       and P_VIEWER_ID_IN = FOLLOWED_ID;
+
+  -- Return the count.
+  return next C_COUNT;
+ 
   -- Retrieve followers.
   open C_RESULTS for
     with PRIV_USERS as (
-      select USER_ID, USERNAME,
+      select C1.CONNECTION_ID as CONNECTION_ID,
+             USER_ID, USERNAME,
              FIRST, MI, LAST,
              SPLATTER.HAS_ACCESS(
                NAME_PRIVACY,
@@ -121,7 +170,8 @@ begin
         left outer join SPLATTER.CONNECTIONS as C2
           on P_VIEWER_ID_IN = C2.FOLLOWER_ID
          and USER_ID = C2.FOLLOWED_ID)
-    select USER_ID, USERNAME,
+    select CONNECTION_ID,
+           USER_ID, USERNAME,
            case when NAME_PRIVACY
                 then FIRST
                 else null
@@ -140,7 +190,7 @@ begin
                 else null
            end as EMAIL,
            EMAIL_PRIVACY,
-           USER_FOLLOWING_VIEWER,
+           VIEWER_FOLLOWING_USER,
            CREATED_TIME
       from PRIV_USERS
      order by CREATED_TIME desc
@@ -148,6 +198,6 @@ begin
     offset P_RESULTS_OFFSET_IN;
 
   -- Return the results.
-  return C_RESULTS;
+  return next C_RESULTS;
 end;
 $$ language PLPGSQL security definer;

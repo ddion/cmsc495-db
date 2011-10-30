@@ -14,8 +14,10 @@
 //           Splatter database.
 package splatter.db.api;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Types;
 import splatter.db.SplatterCallableStatement;
 
 /**
@@ -35,7 +37,8 @@ public class AcceptConnectionRequest
     public AcceptConnectionRequest(Connection connection)
             throws SQLException {
         super(connection.prepareCall(
-                "{ call SPLATTER_API.ACCEPT_CONNECTION_REQUEST(?, ?, ?) }"));
+                "{ ? = call SPLATTER_API.ACCEPT_CONNECTION_REQUEST(?, ?, ?) }"));
+        ((CallableStatement)statement).registerOutParameter(1, Types.BIGINT);
     }
     
     /**
@@ -44,16 +47,18 @@ public class AcceptConnectionRequest
      * @param userId id of the user accepting the request
      * @param authToken auth session token for <code>userId</code>
      * @param requestId id of the connection request to accept
+     * @return id of the new connection
      * @throws SQLException if there is a database error
      */
-    public void call(
+    public long call(
             long userId,
             String authToken,
-            long request)
+            long requestId)
             throws SQLException {
-        statement.setLong(1, userId);
-        statement.setString(2, authToken);
-        statement.setLong(3, request);
-        statement.executeUpdate();        
+        statement.setLong(2, userId);
+        statement.setString(3, authToken);
+        statement.setLong(4, requestId);
+        statement.executeUpdate();
+        return ((CallableStatement)statement).getLong(1);
     }
 }

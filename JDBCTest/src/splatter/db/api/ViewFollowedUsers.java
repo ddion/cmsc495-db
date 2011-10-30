@@ -3,14 +3,14 @@
 // Author:   Michael Songy (msongy)
 // Date:     10/29/2011
 // Package:  splatter.db.api
-// File:     ViewReceivedConnectionRequests.java
+// File:     ViewFollowedUsers.java
 // Platform: JDK 7
 //           JUnit 4.8.2
 //           NetBeans IDE 7.0.1
 //           PostgreSQL 9.1
 //           Ubuntu 11.10
 // Purpose:  Provides a class that represents a
-//           SPLATTER_API.VIEW_RECEIVED_CONNECTION_REQUESTS stored function call for
+//           SPLATTER_API.VIEW_FOLLOWED_USERS stored function call for
 //           the Splatter database.
 package splatter.db.api;
 
@@ -23,11 +23,11 @@ import splatter.db.LimitedResultSet;
 import splatter.db.SplatterCallableStatement;
 
 /**
- * A prepared call to the SPLATTER_API.VIEW_RECEIVED_CONNECTION_REQUESTS function.
+ * A prepared call to the SPLATTER_API.VIEW_FOLLOWED_USERS function.
  * 
  * @author msongy
  */
-public class ViewReceivedConnectionRequests
+public class ViewFollowedUsers
         extends SplatterCallableStatement {
     
     /**
@@ -40,48 +40,47 @@ public class ViewReceivedConnectionRequests
         /**
          * Called for a visited row.
          * 
-         * @param requestId request id
-         * @param senderId id of the user who sent the request
-         * @param username username of the sender
-         * @param first first name of the sender
-         * @param mi middle initial of the sender
-         * @param last last name of the sender
-         * @param namePrivacy true if the sender's name is returned;
+         * @param connectionId id of the connection
+         * @param userId id of the user being followed
+         * @param username username of the user being followed
+         * @param first first name of the user being followed
+         * @param mi middle initial of the user being followed
+         * @param last last name of the user being followed
+         * @param namePrivacy true if the user's name is returned;
          *        false otherwise
-         * @param email the sender's email
-         * @param emailPrivacy <code>true</code> if the senders's email is
+         * @param email the user's email
+         * @param emailPrivacy <code>true</code> if the user's email is
          *        returned; <code>false</code> otherwise
-         * @param receiverFollowingSender <code>true</code> if the receiver is
-         *        following the sender; <code>false</code> otherwise
-         * @param createdTime time the connection request was created
-         * @param message the sender's message to the receiver
+         * @param userFollowingViewer <code>true</code> if the user is
+         *        following the viewer; <code>false</code> otherwise
+         * @param createdTime time the connection was created
          */
         void visit(
-                long requestId,
-                long senderId, String username,
+                long connectionId,
+                long userId, String username,
                 String first, String mi, String last, boolean namePrivacy,
                 String email, boolean emailPrivacy,
-                boolean receiverFollowingSender,
-                Timestamp createdTime, String message);
+                boolean userFollowingViewer,
+                Timestamp createdTime);
     }
     
     /**
-     * Constructs a <code>ViewReceivedConnectionRequests</code> statement.
+     * Constructs a <code>ViewFollowedUsers</code> statement.
      * 
      * @param connection JDBC connection
      * @throws SQLException if there is an error preparing the statement
      */
-    public ViewReceivedConnectionRequests(Connection connection)
+    public ViewFollowedUsers(Connection connection)
             throws SQLException {
         super(connection.prepareStatement(
-                "select * from SPLATTER_API.VIEW_RECEIVED_CONNECTION_REQUESTS(?, ?, ?, ?)"));
+                "select * from SPLATTER_API.VIEW_FOLLOWED_USERS(?, ?, ?, ?)"));
     }
     
     /**
-     * Calls the SPLATTER_API.VIEW_RECEIVED_CONNECTION_REQUESTS function.
+     * Calls the SPLATTER_API.VIEW_FOLLOWED_USERS function.
      * 
-     * @param receiverId id of the receiving user
-     * @param authToken auth session token for <code>receiverId</code>
+     * @param viewerId id of the viewer
+     * @param authToken auth session token for <code>viewerId</code>
      * @param offset offset of first record to retrieve, starting from 0
      * @param count number of connection requests to retrieve starting from
      *        <code>offset</code>; 0 to retrieve all updates
@@ -89,11 +88,11 @@ public class ViewReceivedConnectionRequests
      * @throws SQLException if there is a database error
      */
     public LimitedResultSet call(
-            long receiverId,
+            long viewerId,
             String authToken,
             int offset, int count)
             throws SQLException {
-        statement.setLong(1, receiverId);
+        statement.setLong(1, viewerId);
         statement.setString(2, authToken);
         statement.setInt(3, offset);
         if (count <= 0) {
@@ -119,17 +118,16 @@ public class ViewReceivedConnectionRequests
     public void visitRow(ResultSet resultSet, RowVisitor visitor)
             throws SQLException {
         visitor.visit(
-            resultSet.getLong(1),       // requestId
-            resultSet.getLong(2),       // senderId
-            resultSet.getString(3),     // username
-            resultSet.getString(4),     // first
-            resultSet.getString(5),     // mi
-            resultSet.getString(6),     // last
-            resultSet.getBoolean(7),    // namePrivacy
-            resultSet.getString(8),     // email
-            resultSet.getBoolean(9),    // emailPrivacy
-            resultSet.getBoolean(10),   // receiverFollowingSender
-            resultSet.getTimestamp(11), // createdTime
-            resultSet.getString(12));   // message
+            resultSet.getLong(1),        // connectionId
+            resultSet.getLong(2),        // userId
+            resultSet.getString(3),      // username
+            resultSet.getString(4),      // first
+            resultSet.getString(5),      // mi
+            resultSet.getString(6),      // last
+            resultSet.getBoolean(7),     // namePrivacy
+            resultSet.getString(8),      // email
+            resultSet.getBoolean(9),     // emailPrivacy
+            resultSet.getBoolean(10),    // userFollowingViewer
+            resultSet.getTimestamp(11)); // createdTime
     }
 }

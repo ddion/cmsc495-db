@@ -49,11 +49,11 @@ public class RejectConnectionRequest
     public void call(
             long userId,
             String authToken,
-            long request)
+            long requestId)
             throws SQLException {
         statement.setLong(1, userId);
         statement.setString(2, authToken);
-        statement.setLong(3, request);
+        statement.setLong(3, requestId);
         statement.executeUpdate();        
     }
 }

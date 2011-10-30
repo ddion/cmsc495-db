@@ -65,7 +65,10 @@ public class JDBCTest {
                         RejectConnectionRequest rejectConnectionRequest = new RejectConnectionRequest(c);
                         DeleteConnectionRequest deleteConnectionRequest = new DeleteConnectionRequest(c);
                         ViewReceivedConnectionRequests viewReceivedConnectionRequests = new ViewReceivedConnectionRequests(c);
-                        ViewSentConnectionRequests viewSentConnectionRequests = new ViewSentConnectionRequests(c)) {
+                        ViewSentConnectionRequests viewSentConnectionRequests = new ViewSentConnectionRequests(c);
+                        ViewFollowedUsers viewFollowedUsers = new ViewFollowedUsers(c);
+                        ViewFollowers viewFollowers = new ViewFollowers(c);
+                        DeleteConnection deleteConnection = new DeleteConnection(c)) {
                     // Reset the database for testing
                     reset.call();
                     
@@ -275,11 +278,12 @@ public class JDBCTest {
                             7);
                     
                     // Let's just accept it so he quits pestering...
-                    acceptConnectionRequest.call(
+                    long connectionId = acceptConnectionRequest.call(
                             r2.getId(), r2.getAuthToken(), requestId);
                     System.out.printf(
-                            "User %d accepted connection request %d%n",
-                            r1.getId(), requestId);
+                            "User %d accepted connection request %d%n:" +
+                            "  connecton id = %d%n",
+                            r1.getId(), requestId, connectionId);
                     
                     // Have the first user view followed updates
                     viewFollowedUpdates(
@@ -292,6 +296,50 @@ public class JDBCTest {
                             viewUserUpdates,
                             r1.getId(), r1.getAuthToken(),
                             r2.getId(),
+                            3);
+                    
+                    // Have the first user view followed users
+                    viewFollowedUsers(
+                            viewFollowedUsers,
+                            r1.getId(), r1.getAuthToken(),
+                            3);
+                    
+                    // Have the first user view followers
+                    viewFollowers(
+                            viewFollowers,
+                            r1.getId(), r1.getAuthToken(),
+                            3);
+                    
+                    // Have the second user view followed users
+                    viewFollowedUsers(
+                            viewFollowedUsers,
+                            r2.getId(), r2.getAuthToken(),
+                            3);
+                    
+                    // Have the second user view followers
+                    viewFollowers(
+                            viewFollowers,
+                            r2.getId(), r2.getAuthToken(),
+                            3);
+                    
+                    // Make the second user have second thoughts
+                    deleteConnection.call(
+                            r2.getId(), r2.getAuthToken(),
+                            connectionId);
+                    System.out.printf(
+                            "User %d deleted connection %d%n",
+                            r1.getId(), connectionId);
+                    
+                    // Show the first user the bad news
+                    viewFollowedUsers(
+                            viewFollowedUsers,
+                            r1.getId(), r1.getAuthToken(),
+                            3);
+                    
+                    // Have the second user make sure she's rid of the pest
+                    viewFollowers(
+                            viewFollowers,
+                            r2.getId(), r2.getAuthToken(),
                             3);
                     
                     // Logout the second user
@@ -749,6 +797,130 @@ public class JDBCTest {
                         senderFollowingReceiver,
                         receiverFollowingSender,
                         createdTime.toString(), message);
+            }
+        };
+        
+        while (resultSet.next()) {
+            statement.visitRow(resultSet, visitor);
+        }
+    }
+    
+    static void viewFollowedUsers(
+            final ViewFollowedUsers statement,
+            final long viewerId, final String authToken,
+            final int pageSize)
+            throws Exception {
+        System.out.printf(
+                "User %d viewing followed users with page size of %d%n",
+                viewerId, pageSize);
+        paginate(
+            new PageFunc() {
+                public LimitedResultSet call(int offset, int count) throws Exception {
+                    return statement.call(
+                            viewerId, authToken,
+                            offset, count);
+                }
+
+                public void processResult(ResultSet results) throws Exception {
+                    processViewFollowedUsersResults(statement, results);
+                }
+            }, pageSize);
+    }
+    
+    static void processViewFollowedUsersResults(
+            ViewFollowedUsers statement,
+            ResultSet resultSet)
+            throws SQLException {
+        
+        ViewFollowedUsers.RowVisitor visitor = new ViewFollowedUsers.RowVisitor() {
+            public void visit(
+                long connectionId,
+                long userId, String username,
+                String first, String mi, String last, boolean namePrivacy,
+                String email, boolean emailPrivacy,
+                boolean userFollowingViewer,
+                Timestamp createdTime) {
+                System.out.printf(
+                        "Following user:%n" +
+                        "  connectionId = %d%n" +
+                        "  userId = %d%n" +
+                        "  username = %s%n" +
+                        "  first = %s%n" +
+                        "  mi = %s%n" +
+                        "  last = %s%n" +
+                        "  namePrivacy = %b%n" +
+                        "  email = %s%n" +
+                        "  emailPrivacy = %b%n" +
+                        "  userFollowingViewer = %b%n" +
+                        "  createdTime = %s%n",
+                        connectionId,
+                        userId, username,
+                        first, mi, last, namePrivacy,
+                        email, emailPrivacy,
+                        userFollowingViewer,
+                        createdTime.toString());
+            }
+        };
+        
+        while (resultSet.next()) {
+            statement.visitRow(resultSet, visitor);
+        }
+    }
+    
+    static void viewFollowers(
+            final ViewFollowers statement,
+            final long viewerId, final String authToken,
+            final int pageSize)
+            throws Exception {
+        System.out.printf(
+                "User %d viewing followers with page size of %d%n",
+                viewerId, pageSize);
+        paginate(
+            new PageFunc() {
+                public LimitedResultSet call(int offset, int count) throws Exception {
+                    return statement.call(
+                            viewerId, authToken,
+                            offset, count);
+                }
+
+                public void processResult(ResultSet results) throws Exception {
+                    processViewFollowersResults(statement, results);
+                }
+            }, pageSize);
+    }
+    
+    static void processViewFollowersResults(
+            ViewFollowers statement,
+            ResultSet resultSet)
+            throws SQLException {
+        
+        ViewFollowers.RowVisitor visitor = new ViewFollowers.RowVisitor() {
+            public void visit(
+                long connectionId,
+                long userId, String username,
+                String first, String mi, String last, boolean namePrivacy,
+                String email, boolean emailPrivacy,
+                boolean viewerFollowingUser,
+                Timestamp createdTime) {
+                System.out.printf(
+                        "Follower:%n" +
+                        "  connectionId = %d%n" +
+                        "  userId = %d%n" +
+                        "  username = %s%n" +
+                        "  first = %s%n" +
+                        "  mi = %s%n" +
+                        "  last = %s%n" +
+                        "  namePrivacy = %b%n" +
+                        "  email = %s%n" +
+                        "  emailPrivacy = %b%n" +
+                        "  viewerFollowingUser = %b%n" +
+                        "  createdTime = %s%n",
+                        connectionId,
+                        userId, username,
+                        first, mi, last, namePrivacy,
+                        email, emailPrivacy,
+                        viewerFollowingUser,
+                        createdTime.toString());
             }
         };
         
