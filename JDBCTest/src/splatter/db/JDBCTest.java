@@ -58,7 +58,14 @@ public class JDBCTest {
                         PostUpdate postUpdate = new PostUpdate(c);
                         DeleteUpdate deleteUpdate = new DeleteUpdate(c);
                         ViewFollowedUpdates viewFollowedUpdates = new ViewFollowedUpdates(c);
-                        ViewUserUpdates viewUserUpdates = new ViewUserUpdates(c)) {
+                        ViewUserUpdates viewUserUpdates = new ViewUserUpdates(c);
+                        CreateConnectionRequest createConnectionRequest = new CreateConnectionRequest(c);
+                        RetrieveConnectionRequest retrieveConnectionRequest = new RetrieveConnectionRequest(c);
+                        AcceptConnectionRequest acceptConnectionRequest = new AcceptConnectionRequest(c);
+                        RejectConnectionRequest rejectConnectionRequest = new RejectConnectionRequest(c);
+                        DeleteConnectionRequest deleteConnectionRequest = new DeleteConnectionRequest(c);
+                        ViewReceivedConnectionRequests viewReceivedConnectionRequests = new ViewReceivedConnectionRequests(c);
+                        ViewSentConnectionRequests viewSentConnectionRequests = new ViewSentConnectionRequests(c)) {
                     // Reset the database for testing
                     reset.call();
                     
@@ -138,7 +145,7 @@ public class JDBCTest {
                             r2.getId(), r2.getAuthToken(),
                             updateId);
                     
-                    // Post some more updates to test paging
+                    // Create some more updates to test paging
                     for (int i = 0; i < 10; ++i) {
                         long id = createUpdate.call(
                                 r2.getId(), r2.getAuthToken(),
@@ -155,9 +162,9 @@ public class JDBCTest {
                     
                     // Have the second user retrieve her updates 5 at a time
                     retrieveUpdates(
-                                retrieveUpdates,
-                                r2.getId(), r2.getAuthToken(),
-                                5);
+                            retrieveUpdates,
+                            r2.getId(), r2.getAuthToken(),
+                            5);
                     
                     // Have the second user post her first update
                     postUpdate.call(
@@ -182,6 +189,97 @@ public class JDBCTest {
                             r2.getId(), r2.getAuthToken(),
                             updateId);
                     System.out.printf("Posted update %d%n", updateId);
+                    
+                    // Have the first user beg the second one to let him follow her
+                    long requestId = createConnectionRequest.call(
+                            r1.getId(), r1.getAuthToken(),
+                            r2.getId(),
+                            "Please, I'm begging you! Let me follow you.");
+                    System.out.printf(
+                            "User %d requested to follow user %d%n" +
+                            "  request id = %d%n",
+                            r1.getId(), r2.getId(), requestId);
+                    
+                    // Have the first user view the sent request
+                    retrieveConnectionRequest(
+                            retrieveConnectionRequest,
+                            r1.getId(), r1.getAuthToken(), requestId);
+                    
+                    // Have the second user view the sent request
+                    retrieveConnectionRequest(
+                            retrieveConnectionRequest,
+                            r2.getId(), r2.getAuthToken(), requestId);
+                    
+                    // That sounded too desparate, let's delete it.
+                    deleteConnectionRequest.call(
+                            r1.getId(), r1.getAuthToken(),
+                            requestId);
+                    System.out.printf(
+                            "User %d deleted connection request %d%n",
+                            r1.getId(), requestId);
+                    
+                    // Let's try to be a bit more smooth this time...
+                    requestId = createConnectionRequest.call(
+                            r1.getId(), r1.getAuthToken(),
+                            r2.getId(),
+                            "Hey, it would be cool if I could follow you.");
+                    System.out.printf(
+                            "User %d requested to follow user %d%n" +
+                            "  request id = %d%n",
+                            r1.getId(), r2.getId(), requestId);
+                    
+                    // Have the first user view the sent request
+                    retrieveConnectionRequest(
+                            retrieveConnectionRequest,
+                            r1.getId(), r1.getAuthToken(), requestId);
+                    
+                    // Have the second user view the sent request
+                    retrieveConnectionRequest(
+                            retrieveConnectionRequest,
+                            r2.getId(), r2.getAuthToken(), requestId);
+                    
+                    // Too cheesy, let's reject it...
+                    rejectConnectionRequest.call(
+                            r2.getId(), r2.getAuthToken(), requestId);
+                    System.out.printf(
+                            "User %d rejected connection request %d%n",
+                            r1.getId(), requestId);
+                    
+                    // Have the first user view the second user's updates
+                    viewUserUpdates(
+                            viewUserUpdates,
+                            r1.getId(), r1.getAuthToken(),
+                            r2.getId(),
+                            3);
+                    
+                    // We'll try the nice way
+                    requestId = createConnectionRequest.call(
+                            r1.getId(), r1.getAuthToken(),
+                            r2.getId(),
+                            "Could I please follow you? kthxbye!");
+                    System.out.printf(
+                            "User %d requested to follow user %d%n" +
+                            "  request id = %d%n",
+                            r1.getId(), r2.getId(), requestId);
+                    
+                    // Have the first user view sent
+                    viewSentConnectionRequests(
+                            viewSentConnectionRequests,
+                            r1.getId(), r1.getAuthToken(),
+                            4);
+                    
+                    // Have the second user view received
+                    viewReceivedConnectionRequests(
+                            viewReceivedConnectionRequests,
+                            r2.getId(), r2.getAuthToken(),
+                            7);
+                    
+                    // Let's just accept it so he quits pestering...
+                    acceptConnectionRequest.call(
+                            r2.getId(), r2.getAuthToken(), requestId);
+                    System.out.printf(
+                            "User %d accepted connection request %d%n",
+                            r1.getId(), requestId);
                     
                     // Have the first user view followed updates
                     viewFollowedUpdates(
@@ -492,6 +590,165 @@ public class JDBCTest {
                         updateId,
                         userId, username,
                         postedTime.toString(), message);
+            }
+        };
+        
+        while (resultSet.next()) {
+            statement.visitRow(resultSet, visitor);
+        }
+    }
+    
+    static void retrieveConnectionRequest(
+            RetrieveConnectionRequest statement,
+            long userId, String authToken,
+            long requestId)
+            throws SQLException {
+        RetrieveConnectionRequest.RowVisitor visitor = new RetrieveConnectionRequest.RowVisitor() {
+            public void visit(
+                    long requestId,
+                    long senderId, long receiverId,
+                    Timestamp createdTime, String message) {
+                System.out.printf(
+                        "Retrieved connection request:%n" +
+                        "  requestId = %d%n" +
+                        "  senderId = %d%n" +
+                        "  receiverId = %d%n" +
+                        "  createdTime = %s%n" +
+                        "  message = %s%n",
+                        requestId,
+                        senderId, receiverId,
+                        createdTime.toString(), message);
+            }
+        };
+
+        try (ResultSet resultSet = statement.call(userId, authToken, requestId)) {
+            while (resultSet.next()) {
+                statement.visitRow(resultSet, visitor);
+            }
+        }
+    }
+    
+    static void viewReceivedConnectionRequests(
+            final ViewReceivedConnectionRequests statement,
+            final long viewerId, final String authToken,
+            final int pageSize)
+            throws Exception {
+        System.out.printf(
+                "User %d viewing received connection requests with page size of %d%n",
+                viewerId, pageSize);
+        paginate(
+            new PageFunc() {
+                public LimitedResultSet call(int offset, int count) throws Exception {
+                    return statement.call(
+                            viewerId, authToken,
+                            offset, count);
+                }
+
+                public void processResult(ResultSet results) throws Exception {
+                    processViewReceivedConnectionRequestsResults(statement, results);
+                }
+            }, pageSize);
+    }
+    
+    static void processViewReceivedConnectionRequestsResults(
+            ViewReceivedConnectionRequests statement,
+            ResultSet resultSet)
+            throws SQLException {
+        
+        ViewReceivedConnectionRequests.RowVisitor visitor = new ViewReceivedConnectionRequests.RowVisitor() {
+            public void visit(
+                long requestId,
+                long senderId, String username,
+                String first, String mi, String last, boolean namePrivacy,
+                String email, boolean emailPrivacy,
+                boolean receiverFollowingSender,
+                Timestamp createdTime, String message) {
+                System.out.printf(
+                        "Received connection request:%n" +
+                        "  requestId = %d%n" +
+                        "  senderId = %d%n" +
+                        "  username = %s%n" +
+                        "  first = %s%n" +
+                        "  mi = %s%n" +
+                        "  last = %s%n" +
+                        "  namePrivacy = %b%n" +
+                        "  email = %s%n" +
+                        "  emailPrivacy = %b%n" +
+                        "  receiverFollowingSender = %b%n" +
+                        "  createdTime = %s%n" +
+                        "  message = %s%n",
+                        requestId,
+                        senderId, username,
+                        first, mi, last, namePrivacy,
+                        email, emailPrivacy,
+                        receiverFollowingSender,
+                        createdTime.toString(), message);
+            }
+        };
+        
+        while (resultSet.next()) {
+            statement.visitRow(resultSet, visitor);
+        }
+    }
+    
+    static void viewSentConnectionRequests(
+            final ViewSentConnectionRequests statement,
+            final long viewerId, final String authToken,
+            final int pageSize)
+            throws Exception {
+        System.out.printf(
+                "User %d viewing sent connection requests with page size of %d%n",
+                viewerId, pageSize);
+        paginate(
+            new PageFunc() {
+                public LimitedResultSet call(int offset, int count) throws Exception {
+                    return statement.call(
+                            viewerId, authToken,
+                            offset, count);
+                }
+
+                public void processResult(ResultSet results) throws Exception {
+                    processViewSentConnectionRequestsResults(statement, results);
+                }
+            }, pageSize);
+    }
+    
+    static void processViewSentConnectionRequestsResults(
+            ViewSentConnectionRequests statement,
+            ResultSet resultSet)
+            throws SQLException {
+        
+        ViewSentConnectionRequests.RowVisitor visitor = new ViewSentConnectionRequests.RowVisitor() {
+            public void visit(
+                long requestId,
+                long receiverId, String username,
+                String first, String mi, String last, boolean namePrivacy,
+                String email, boolean emailPrivacy,
+                boolean senderFollowingReceiver,
+                boolean receiverFollowingSender,
+                Timestamp createdTime, String message) {
+                System.out.printf(
+                        "Sent connection request:%n" +
+                        "  requestId = %d%n" +
+                        "  receiverId = %d%n" +
+                        "  username = %s%n" +
+                        "  first = %s%n" +
+                        "  mi = %s%n" +
+                        "  last = %s%n" +
+                        "  namePrivacy = %b%n" +
+                        "  email = %s%n" +
+                        "  emailPrivacy = %b%n" +
+                        "  senderFollowingReceiver = %b%n" +
+                        "  receiverFollowingSender = %b%n" +
+                        "  createdTime = %s%n" +
+                        "  message = %s%n",
+                        requestId,
+                        receiverId, username,
+                        first, mi, last, namePrivacy,
+                        email, emailPrivacy,
+                        senderFollowingReceiver,
+                        receiverFollowingSender,
+                        createdTime.toString(), message);
             }
         };
         

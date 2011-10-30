@@ -43,9 +43,9 @@ public class RetrieveUpdates
      * 
      * @param userId id of the user who owns the update
      * @param authToken auth session token for <code>userId</code>
+     * @param offset offset of first record to retrieve, starting from 0
      * @param count number of updates to retrieve starting from
      *        <code>offset</code>; 0 to retrieve all updates
-     * @param offset offset of first record to retrieve, starting from 0
      * @throws SQLException if there is a database error
      */
     public LimitedResultSet call(

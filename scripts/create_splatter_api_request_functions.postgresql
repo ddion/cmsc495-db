@@ -93,7 +93,7 @@ begin
   -- Delete the request.
   delete
     from SPLATTER.CONNECTION_REQUESTS
-   where REQUEST_ID = P_REQUEST_ID
+   where REQUEST_ID = P_REQUEST_ID_IN
      and RECEIVER_ID = P_USER_ID_IN
   returning SENDER_ID
     into strict V_FOLLOWER_ID;
@@ -165,13 +165,25 @@ create function VIEW_RECEIVED_CONNECTION_REQUESTS(
        P_AUTH_TOKEN_IN         VARCHAR,
        P_RESULTS_OFFSET_IN     INT,
        P_RESULTS_COUNT_IN      INT)
-  returns REFCURSOR as $$
+  returns SETOF REFCURSOR as $$
 declare
+  C_COUNT            REFCURSOR;
   C_RESULTS          REFCURSOR;
 begin
   -- Authenticate.
   perform SPLATTER.AUTHENTICATE(
     P_RECEIVER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Count the number of requests.
+  open C_COUNT for
+    select COUNT(*)
+      from SPLATTER.CONNECTION_REQUESTS
+      join SPLATTER.USERS
+        on USER_ID = SENDER_ID
+       and P_RECEIVER_ID_IN = RECEIVER_ID;
+
+  -- Return the count.
+  return next C_COUNT;
 
   -- Retrieve the requests.
   open C_RESULTS for
@@ -225,7 +237,7 @@ begin
     offset P_RESULTS_OFFSET_IN;
 
   -- Return the results.
-  return C_RESULTS;
+  return next C_RESULTS;
 end;
 $$ language PLPGSQL security definer;
 
@@ -238,13 +250,25 @@ create function VIEW_SENT_CONNECTION_REQUESTS(
        P_AUTH_TOKEN_IN         VARCHAR,
        P_RESULTS_OFFSET_IN     INT,
        P_RESULTS_COUNT_IN      INT)
-  returns REFCURSOR as $$
+  returns SETOF REFCURSOR as $$
 declare
+  C_COUNT            REFCURSOR;
   C_RESULTS          REFCURSOR;
 begin
   -- Authenticate.
   perform SPLATTER.AUTHENTICATE(
     P_SENDER_ID_IN, P_AUTH_TOKEN_IN);
+
+  -- Count the number of requests.
+  open C_COUNT for
+    select COUNT(*)
+      from SPLATTER.CONNECTION_REQUESTS
+      join SPLATTER.USERS
+        on P_SENDER_ID_IN = SENDER_ID
+       and USER_ID = RECEIVER_ID;
+
+  -- Return the count.
+  return next C_COUNT;
 
   -- Retrieve the requests.
   open C_RESULTS for
@@ -301,6 +325,6 @@ begin
     offset P_RESULTS_OFFSET_IN;
 
   -- Return the results.
-  return C_RESULTS;
+  return next C_RESULTS;
 end;
 $$ language PLPGSQL security definer;
